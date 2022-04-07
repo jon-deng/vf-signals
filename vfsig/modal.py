@@ -1,7 +1,7 @@
 import numpy as np
 from numpy import fft
 
-def estimate_fundamental_mode(t, y, flb=0, fub=np.inf):
+def estimate_fundamental_mode(y, dt=1, flb=0, fub=np.inf):
     """
     Return information about the modes of a signal
 
@@ -17,7 +17,7 @@ def estimate_fundamental_mode(t, y, flb=0, fub=np.inf):
 
     # Compute the DFT and frequency components
     dfty = fft.rfft(y_)
-    f = fft.rfftfreq(t.size, d=(t[-1]-t[0])/(t.size-1))
+    f = fft.rfftfreq(y.size, d=dt)
 
     idx_inrange = np.logical_and(f>flb, f<fub)
     f = f[idx_inrange]

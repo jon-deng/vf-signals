@@ -8,45 +8,45 @@ E. Holmberg, R. Hillman, J. Perkell - Glottal airflow ... - 1998 - JASA
 import numpy as np
 
 # Returns arrays with the same shape as the signal
-def closed(t, y, closed_ub):
+def is_closed(t, y, closed_ub):
     """
-    Return a boolean array indicating closure
+    Return a float array indicating closure
     """
     return y < closed_ub
 
-def open(t, y, closed_ub):
-    return not closed(t, y, closed_ub)
+def is_open(t, y, closed_ub):
+    return np.logical_not(is_closed(t, y, closed_ub))
 
-def closing(t, y, closed_ub):
+def is_closing(t, y, closed_ub):
     y_prime = np.gradient(y, t)
-    return np.logical_and(y > closed_ub, y_prime < 0)
+    return np.logical_and(is_open(t, y, closed_ub), y_prime < 0)
 
-def opening(t, y, closed_ub):
+def is_opening(t, y, closed_ub):
     y_prime = np.gradient(y, t)
-    return np.logical_and(y > closed_ub, y_prime > 0)
+    return np.logical_and(is_open(t, y, closed_ub), y_prime >= 0)
 
 # Returns scalar summaries of the signal
 def closed_ratio(t, y, closed_ub=0.0):
     """
     Return the ratio of closed time to total time over the provided signal
     """
-    y_closed = closed(t, y, closed_ub)
-    closed_duration = np.trapz(y_closed, x=t)
+    ind_closed = np.array(is_closed(t, y, closed_ub), dtype=np.float)
+    closed_duration = np.trapz(ind_closed, x=t)
     duration = t[-1]-t[0]
     return closed_duration/duration
 
-def open_ratio(t, y, open_lb=0.0):
+def open_ratio(t, y, closed_ub=0.0):
     """
     Return the ratio of open time to total time over the provided signal
     """
-    return 1 - closed_ratio(t, y, closed_ub=open_lb)
+    return 1 - closed_ratio(t, y, closed_ub)
 
 def closing_ratio(t, y, closed_ub=0.0):
     """
     Return the ratio of closed time to total time over the provided signal
     """
-    y_closing = closing(t, y, closed_ub)
-    closing_duration = np.trapz(y_closing, x=t)
+    ind_closing = np.array(is_closing(t, y, closed_ub), dtype=np.float)
+    closing_duration = np.trapz(ind_closing, x=t)
     duration = t[-1]-t[0]
     return closing_duration/duration
 
@@ -54,13 +54,13 @@ def opening_ratio(t, y, closed_ub=0.0):
     """
     Return the ratio of closed time to total time over the provided signal
     """
-    y_opening = opening(t, y, closed_ub)
-    opening_duration = np.trapz(y_opening, x=t)
+    ind_opening = np.array(is_opening(t, y, closed_ub), dtype=np.float)
+    opening_duration = np.trapz(ind_opening, x=t)
     duration = t[-1]-t[0]
     return opening_duration/duration
 
-def speed_ratio(t, y):
-    pass
+def speed_ratio(t, y, closed_ub=0.0):
+    return opening_ratio(t, y, closed_ub)/closing_ratio(t, y, closed_ub)
 
 def mfdr(t, y):
     """
