@@ -11,100 +11,226 @@ import numpy as np
 ## Indicating functions
 # These functions indicate whether the VFs are in some state or not
 # (open, closed, etc..)
-def is_closed(t, y, closed_ub):
+def _add_signal_docstring(signal_function):
+    add_docstring = """
+    Parameters
+    ----------
+    y : array_like
+        The glottal signal of interest
+    t : array_like
+        Time instances of the glottal signal. This should have a shape
+        broadcastable to `y`
+    dt : float
+        The spacing between samples if sample spacing is uniform. If `t` is
+        supplied, values of `dt` will be ignored
+    closed_ub : float
+        The value of `y` where for all `y < closed_ub`, the signal is assumed to
+        indicate closure.
+
+    Returns
+    -------
+    array_like
+        Boolean array indicating whether the state is satisfied or not
+    """
+    signal_function.__doc__ = signal_function.__doc__ + add_docstring
+    return signal_function
+
+@_add_signal_docstring
+def is_closed(y, t=None, dt=1.0, closed_ub=0):
     """
     Return a boolean array indicating VF closure
+
     """
     return y < closed_ub
 
-def is_open(t, y, closed_ub):
+@_add_signal_docstring
+def is_open(y, t=None, dt=1.0, closed_ub=0):
     """
     Return a boolean array indicating VFs are open
-    """
-    return np.logical_not(is_closed(t, y, closed_ub))
 
-def is_closing(t, y, closed_ub):
+    """
+    return np.logical_not(
+        is_closed(y, t=t, dt=dt, closed_ub=closed_ub)
+        )
+
+@_add_signal_docstring
+def is_closing(y, t=None, dt=1.0, closed_ub=0):
     """
     Return a boolean array indicating VFs are closing
+
     """
     y_prime = np.gradient(y, t)
-    return np.logical_and(is_open(t, y, closed_ub), y_prime < 0)
+    return np.logical_and(
+        is_open(y, t=t, dt=dt, closed_ub=closed_ub),
+        y_prime < 0
+        )
 
-def is_opening(t, y, closed_ub):
+@_add_signal_docstring
+def is_opening(y, t=None, dt=1.0, closed_ub=0):
     """
     Return a boolean array indicating VFs are opening
+
     """
     y_prime = np.gradient(y, t)
-    return np.logical_and(is_open(t, y, closed_ub), y_prime >= 0)
+    return np.logical_and(
+        is_open(y, t=t, dt=dt, closed_ub=closed_ub),
+        y_prime >= 0
+        )
 
-# Return scalar summaries of the signal
-def closed_ratio(t, y, closed_ub=0.0):
+## Return scalar summaries of the signal
+def _add_measure_docstring(measure_function):
+    add_docstring = """
+    Parameters
+    ----------
+    y : array_like
+        The glottal signal of interest
+    t : array_like
+        Time instances of the glottal signal. This should have a shape
+        broadcastable to `y`
+    dt : float
+        The spacing between samples if sample spacing is uniform. If `t` is
+        supplied, values of `dt` will be ignored
+    axis : int
+        The axis to reduce to a scalar measure. For example if `y` has a shape
+        `(5, 1024)` indicating 1024 time samples, calling
+        `closed_ratio(y, axis=-1)` will result in an array of shape `(5,)`
+        indicating the closed ratio of each of the 5 sets of signals.
+    closed_ub : float
+        The value of `y` where for all `y < closed_ub`, the signal is assumed to
+        indicate closure.
+
+    Returns
+    -------
+    array_like
+        An array containing the summary scalar. If `y` has a single axis, this
+        is a float.
+    """
+    measure_function.__doc__ = measure_function.__doc__ + add_docstring
+    return measure_function
+
+@_add_measure_docstring
+def closed_ratio(y, t=None, dt=1.0, axis=-1, closed_ub=0):
     """
     Return the closed ratio
 
     This is the ratio of time spent closed to total time
+
     """
-    ind_closed = np.array(is_closed(t, y, closed_ub), dtype=np.float)
-    closed_duration = np.trapz(ind_closed, x=t)
+    ind_kwargs = {
+        't': t, 'dt': dt, 'closed_ub': closed_ub
+    }
+    trapz_kwargs = {
+        't': t, 'dt': dt, 'axis': axis
+    }
+
+    ind_closed = np.array(
+        is_closed(y, **ind_kwargs), dtype=np.float
+    )
+    closed_duration = np.trapz(ind_closed, **trapz_kwargs)
     duration = t[-1]-t[0]
     return closed_duration/duration
 
-def open_ratio(t, y, closed_ub=0.0):
+@_add_measure_docstring
+def open_ratio(y, t=None, dt=1.0, axis=-1, closed_ub=0):
     """
     Return the open ratio
 
     This is the ratio of time spent open to total time
-    """
-    return 1 - closed_ratio(t, y, closed_ub)
 
-def closing_ratio(t, y, closed_ub=0.0):
+    """
+    return 1 - closed_ratio(y, t=t, dt=dt, axis=axis, closed_ub=closed_ub)
+
+@_add_measure_docstring
+def closing_ratio(y, t=None, dt=1.0, axis=-1, closed_ub=0):
     """
     Return the closing ratio
 
     This is the ratio of time spent closing to the total time
+
     """
-    ind_closing = np.array(is_closing(t, y, closed_ub), dtype=np.float)
-    closing_duration = np.trapz(ind_closing, x=t)
+    # Create kwargs for the 'indicator' and 'numpy trapz' functions
+    ind_kwargs = {
+        't': t, 'dt': dt, 'closed_ub': closed_ub
+    }
+    trapz_kwargs = {
+        't': t, 'dt': dt, 'axis': axis
+    }
+
+    ind_closing = np.array(is_closing(y, **ind_kwargs), dtype=np.float)
+    closing_duration = np.trapz(ind_closing, **trapz_kwargs)
     duration = t[-1]-t[0]
     return closing_duration/duration
 
-def opening_ratio(t, y, closed_ub=0.0):
+@_add_measure_docstring
+def opening_ratio(y, t=None, dt=1.0, axis=-1, closed_ub=0):
     """
     Return the opening ratio
 
     This is the ratio of time spent opening to the total time
+
     """
-    ind_opening = np.array(is_opening(t, y, closed_ub), dtype=np.float)
-    opening_duration = np.trapz(ind_opening, x=t)
+    ind_kwargs = {
+        't': t, 'dt': dt, 'closed_ub': closed_ub
+    }
+    trapz_kwargs = {
+        't': t, 'dt': dt, 'axis': axis
+    }
+
+    ind_opening = np.array(
+        is_opening(y, ind_kwargs), dtype=np.float)
+    opening_duration = np.trapz(ind_opening, trapz_kwargs)
     duration = t[-1]-t[0]
     return opening_duration/duration
 
-def speed_ratio(t, y, closed_ub=0.0):
+@_add_measure_docstring
+def speed_ratio(y, t=None, dt=None, axis=-1, closed_ub=0):
     """
     Return the speed ratio
 
     This is the ratio of opening to closing times
-    """
-    return opening_ratio(t, y, closed_ub)/closing_ratio(t, y, closed_ub)
 
-def mfdr(t, y):
+    """
+    kwargs = {
+        't': t, 'dt': dt, 'axis': axis, 'closed_ub': closed_ub
+    }
+    return opening_ratio(y, **kwargs) / closing_ratio(y, **kwargs)
+
+@_add_measure_docstring
+def mfdr(y, t=None, dt=None, axis=-1, closed_ub=0):
     """
     Return the maximum flow declination rate (MFDR)
-    """
-    yp = np.gradient(y, t)
-    return np.min(yp)
 
-def ac_flow(t, y):
+    """
+    ind_kwargs = {
+        't': t, 'dt': dt, 'closed_ub': closed_ub
+    }
+
+    if t is not None:
+        _dt = t
+    elif dt is not None:
+        _dt = dt
+    else:
+        _dt = 1.0
+
+    ind_open = is_open(y, **ind_kwargs)
+    yp = np.gradient(y, _dt, axis=axis)
+    return np.min(yp[ind_open])
+
+@_add_measure_docstring
+def ac_flow(y, t=None, dt=None, axis=-1, closed_ub=0):
     """
     Return the AC flow
 
     This is the amplitude from minimum to maximum of the signal
-    """
-    return np.max(y) - np.min(y)
 
-def acdc(t, y):
+    """
+    return np.max(y, axis=axis) - np.min(y, axis=axis)
+
+@_add_measure_docstring
+def acdc(y, t=None, dt=None, axis=-1, closed_ub=0):
     """
     See Holmberg et al. for the definition
+
     """
     y_ac = y - y.min()
 
