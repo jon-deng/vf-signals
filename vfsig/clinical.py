@@ -6,7 +6,9 @@ The definitions of these ratios come from a variety of papers including
 E. Holmberg, R. Hillman, J. Perkell - Glottal airflow ... - 1998 - JASA
 """
 
+from xml.dom import ValidationErr
 import numpy as np
+import scipy as sp
 
 ## Indicating functions
 # These functions indicate whether the VFs are in some state or not
@@ -238,3 +240,48 @@ def acdc(y, t=None, dt=None, axis=-1, closed_ub=0):
     y_ac_rms = np.sqrt(np.trapz(t, y_ac**2)/T)
     y_ac_mean = np.trapz(t, y_ac)/T
     return y_ac_rms/y_ac_mean
+
+@_add_measure_docstring
+def rms_time(y, t=None, dt=None, axis=-1):
+    return np.sqrt(np.mean(y**2, axis=axis))
+
+## Frequency domain processing functions
+# Signals
+def prad_piston(y, f=None, df=1.0, axis=-1, piston_params=None):
+    # handle depacking of the piston acoustic parameters
+    if piston_params is None:
+        piston_params = {
+            'r': 1.0, 'theta': 0.0, 'a': 1.0, 'rho': 1.0, 'c': 343*10
+        }
+
+    r = piston_params['r']
+    theta = piston_params['theta']
+    a = piston_params['a']
+    rho = piston_params['rho']
+    c = piston_params['c']
+
+    # compute the frequencies if not provided
+    # this assumes `y` is a one-sided fourier representation and `y[0]`
+    # corresponds to a frequency of 0.0 rad/s
+    if f is None:
+        f_shape = [1]*y.ndim
+        f_shape[axis] = y.shape[axis]
+        f = np.zeros(f_shape)
+        f[:] = df*np.arange(y.shape[axis])
+
+    # apply the piston-in-infinite-baffle formula to determine radiated pressure
+    k = f/c
+    zc = rho*c
+
+    y = k*a*np.sin(theta)
+    if theta == 0:
+        return 1j/2*zc/r * y/np.pi * k * np.exp(-1j*k*r)
+    else:
+        return 1j/2*zc/r * y/np.pi * k * 2*sp.special.jv(1, y)/y * np.exp(-1j*k*r)
+
+
+# Measures
+def rms_freq(y, f=None, df=None, axis=-1):
+    return np.sqrt(np.mean(y**2, axis=axis))
+
+# def spl(y, t=None, dt=None, axis=-1):
