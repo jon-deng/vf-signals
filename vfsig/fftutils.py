@@ -2,24 +2,30 @@
 Contains functionality related to fourier transforms of data
 """
 
+from typing import Optional
+
 import numpy as np
 
 
-def psd_from_fft(u, v, axis=-1):
+def psd_from_fft(u: np.ndarray, v: np.ndarray, axis: int=-1) -> np.ndarray:
     """
-    Return power spectral density from fourier domain inputs
+    Return power spectral density (psd) from fourier domain inputs
+
+    If `u` and `v` have units of a and b, respectively, then the psd has units
+    of a*b/frequency bin. To obtain physical units for the frequency, you will
+    have to divide by the size of the frequency bin.
 
     Parameters
     ----------
     u, v : np.array
-        Frequency domain signals
+        Frequency domain signals as obtained from `np.fft`
     axis : int
-        Axis to compute along
+        Axis to compute psd along
     """
     N = u.size
     return 1/N * np.conjugate(u)*v
 
-def power_from_fft(u, v, axis=-1):
+def power_from_fft(u: np.ndarray, v: np.ndarray, axis: int=-1) -> complex:
     """
     Return power from fourier domain inputs
 
@@ -35,9 +41,13 @@ def power_from_fft(u, v, axis=-1):
     """
     return np.sum(psd_from_fft(u, v, axis))
 
-def psd_from_rfft(u, v, n=None, axis=-1):
+def psd_from_rfft(u: np.ndarray, v: np.ndarray, n: Optional[int]=None, axis: int=-1) -> np.ndarray:
     """
-    Return power spectral density from one-sided fourier domain inputs
+    Return power spectral density (psd) from one-sided fourier domain inputs
+
+    If `u` and `v` have units of a and b, respectively, then the psd has units
+    of a*b/frequency bin. To obtain physical units for the frequency, you will
+    have to divide by the size of the frequency bin.
 
     Parameters
     ----------
@@ -71,11 +81,22 @@ def psd_from_rfft(u, v, n=None, axis=-1):
 
     return 1/n * np.real(_a*np.conjugate(u)*(v))
 
-def power_from_rfft(u, v, n=None, axis=-1):
+def power_from_rfft(u: np.ndarray, v: np.ndarray, n: Optional[int]=None, axis: int=-1) -> float:
     """
     Return power from one-sided fourier domain inputs
 
     If `ut` and `vt` are the corresponding time domain signals, the power
     returned is equivalent to `np.sum(np.conj(ut)*vt)`.
+
+    Parameters
+    ----------
+    u, v : np.array
+        Frequency domain signals
+    n : int
+        The number of points in the original time-domain signal. If not
+        provided, the function assumes `n` is even which may lead to aliasing.
+        See `np.fft.rfft` and `np.fft.rifft` for details on why.
+    axis : int
+        Axis to compute along
     """
     return np.sum(psd_from_rfft(u, v, n=n, axis=axis))
