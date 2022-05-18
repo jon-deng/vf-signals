@@ -108,32 +108,6 @@ def fft_decomposition(dt, y):
 
     return freq, yy
 
-def psd_from_fft(u, v, axis=-1):
-    N = u.size
-    return 1/N * np.conjugate(u)*v
 
-def power_from_fft(u, v, axis=-1):
-    return np.sum(psd_from_fft(u, v, axis))
-
-def psd_from_rfft(u, v, axis=-1):
-    N = u.size
-    NDIM = max(u.ndim, v.ndim)
-    axis = NDIM-axis if axis < 0 else axis
-
-    # Create a scaling array to account for dropped symmetric components
-    sc_shape = [1]*NDIM
-    sc_shape[axis] = N
-    sc = np.ones(sc_shape)
-
-    if N//2 == 0:
-        idx = (0,)*(axis) + (slice(1, None)) + (0,)*(NDIM-axis-1)
-        sc[idx] = 2.0
-    else:
-        idx = (0,)*(axis) + (slice(1, -1)) + (0,)*(NDIM-axis-1)
-        sc[idx] = 2.0
-
-    return 1/N * sc**2 * np.conjugate(u)*v
-
-def power_from_rfft(u, v, axis=-1):
     N = u.size
     return np.sum(psd_from_rfft(u, v, axis))
