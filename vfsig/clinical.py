@@ -243,6 +243,9 @@ def acdc(y, t=None, dt=None, axis=-1, closed_ub=0):
 
 @_add_measure_docstring
 def rms_time(y, t=None, dt=None, axis=-1):
+    """
+    Return the RMS of a time-domain signal
+    """
     return np.sqrt(np.mean(y**2, axis=axis))
 
 ## Frequency domain processing functions
