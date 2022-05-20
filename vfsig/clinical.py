@@ -260,10 +260,12 @@ def prad_piston(q, f=None, df=1.0, axis=-1, piston_params=None):
     [Section 7.4, equation 7.4.17].
     """
     # handle depacking of the piston acoustic parameters
+    default_piston_params = {
+        'r': 100.0, 'theta': 0.0, 'a': 1.0, 'rho': 0.001225, 'c': 343*100
+    }
     if piston_params is None:
-        piston_params = {
-            'r': 100.0, 'theta': 0.0, 'a': 1.0, 'rho': 0.001225, 'c': 343*100
-        }
+        piston_params = {}
+    piston_params = default_piston_params.update(piston_params)
 
     r = piston_params['r']
     theta = piston_params['theta']
