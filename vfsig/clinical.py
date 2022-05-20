@@ -250,7 +250,15 @@ def rms_time(y, t=None, dt=None, axis=-1):
 
 ## Frequency domain processing functions
 # Signals
-def prad_piston(y, f=None, df=1.0, axis=-1, piston_params=None):
+def prad_piston(q, f=None, df=1.0, axis=-1, piston_params=None):
+    """
+    Return the complex pressure amplitude from a flow source
+
+    The complex pressure amplitude assumes the flow source acts as a piston in
+    and infinite baffle. The resulting complex pressure given the complex flow
+    is given by Kinsler et al. "Fundamental of Acoustics"
+    [Section 7.4, equation 7.4.17].
+    """
     # handle depacking of the piston acoustic parameters
     if piston_params is None:
         piston_params = {
@@ -276,11 +284,11 @@ def prad_piston(y, f=None, df=1.0, axis=-1, piston_params=None):
     k = f/c
     zc = rho*c
 
-    y = k*a*np.sin(theta)
     if theta == 0:
-        return 1j/2*zc/r * y/np.pi * k * np.exp(-1j*k*r)
+        return 1j/2*zc/r * q/np.pi * k * np.exp(-1j*k*r)
     else:
-        return 1j/2*zc/r * y/np.pi * k * 2*sp.special.jv(1, y)/y * np.exp(-1j*k*r)
+        y = k*a*np.sin(theta)
+        return 1j/2*zc/r * q/np.pi * k * 2*sp.special.jv(1, y)/y * np.exp(-1j*k*r)
 
 
 # Measures
