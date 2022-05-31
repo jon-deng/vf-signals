@@ -265,7 +265,8 @@ def prad_piston(q, f=None, df=1.0, axis=-1, piston_params=None):
     }
     if piston_params is None:
         piston_params = {}
-    piston_params = default_piston_params.update(piston_params)
+    default_piston_params.update(piston_params)
+    piston_params = default_piston_params
 
     r = piston_params['r']
     theta = piston_params['theta']
