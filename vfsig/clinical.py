@@ -258,6 +258,23 @@ def prad_piston(q, f=None, df=1.0, axis=-1, piston_params=None):
     and infinite baffle. The resulting complex pressure given the complex flow
     is given by Kinsler et al. "Fundamental of Acoustics"
     [Section 7.4, equation 7.4.17].
+
+    Parameters
+    ----------
+    q : np.array
+        The frequency domain components of q
+    f : np.array
+        Frequencies corresponding to components of `q` in [rad/time]
+    df : float
+        Frequency spacing of `q` components
+    piston_params : dict
+        A mapping of named piston parameters to values. The parameters are given
+        by (see Figure 7.4.3 of Kinsler):
+        'a' - radius of the piston
+        'r' - distance from the piston center
+        'theta' - angle from the piston central axis
+        'rho' - density of raidating material (usu. air)
+        'c' - speed of sound in material
     """
     # handle depacking of the piston acoustic parameters
     default_piston_params = {
@@ -284,15 +301,15 @@ def prad_piston(q, f=None, df=1.0, axis=-1, piston_params=None):
         f[:] = df*np.arange(y.shape[axis])
 
     # apply the piston-in-infinite-baffle formula to determine radiated pressure
+    # k is the wave number
     k = f/c
     zc = rho*c
 
     if theta == 0:
-        return 1j/2*zc/r * q/np.pi * k * np.exp(-1j*k*r)
+        return 1j/2 * zc * q * a/r * k*a * np.exp(-1j*k*r)
     else:
         y = k*a*np.sin(theta)
-        return 1j/2*zc/r * q/np.pi * k * 2*sp.special.jv(1, y)/y * np.exp(-1j*k*r)
-
+        return 1j/2 * zc * q * a/r * k*a * 2*sp.special.jv(1, y)/y * np.exp(-1j*k*r)
 
 # Measures
 def rms_freq(y, f=None, df=None, axis=-1):
