@@ -264,9 +264,9 @@ def prad_piston(q, f=None, df=1.0, axis=-1, piston_params=None):
     q : np.array
         The frequency domain components of q
     f : np.array
-        Frequencies corresponding to components of `q` in [rad/time]
+        Frequencies corresponding to components of `q` in [rad/unit time]
     df : float
-        Frequency spacing of `q` components
+        Frequency spacing of `q` components in [rad/unit time]
     piston_params : dict
         A mapping of named piston parameters to values. The parameters are given
         by (see Figure 7.4.3 of Kinsler):
@@ -305,11 +305,13 @@ def prad_piston(q, f=None, df=1.0, axis=-1, piston_params=None):
     k = f/c
     zc = rho*c
 
+    # Note the below formula are missing factors of 'a' relative to eq. (7.4.17)
+    # because this formula uses flow rate, instead of piston velocity.
     if theta == 0:
-        return 1j/2 * zc * q * a/r * k*a * np.exp(-1j*k*r)
+        return 1j/2 * zc * q/np.pi * 1/r * k * np.exp(-1j*k*r)
     else:
         y = k*a*np.sin(theta)
-        return 1j/2 * zc * q * a/r * k*a * 2*sp.special.jv(1, y)/y * np.exp(-1j*k*r)
+        return 1j/2 * zc * q/np.pi * 1/r * k * 2*sp.special.jv(1, y)/y * np.exp(-1j*k*r)
 
 # Measures
 def rms_freq(y, f=None, df=None, axis=-1):
