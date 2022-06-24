@@ -39,7 +39,7 @@ def power_from_fft(u: np.ndarray, v: np.ndarray, axis: int=-1) -> complex:
     axis : int
         Axis to compute along
     """
-    return np.sum(psd_from_fft(u, v, axis))
+    return np.sum(psd_from_fft(u, v, axis), axis=axis)
 
 def psd_from_rfft(u: np.ndarray, v: np.ndarray, n: Optional[int]=None, axis: int=-1) -> np.ndarray:
     """
@@ -99,4 +99,4 @@ def power_from_rfft(u: np.ndarray, v: np.ndarray, n: Optional[int]=None, axis: i
     axis : int
         Axis to compute along
     """
-    return np.sum(psd_from_rfft(u, v, n=n, axis=axis))
+    return np.sum(psd_from_rfft(u, v, n=n, axis=axis), axis=axis)
