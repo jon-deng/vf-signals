@@ -5,7 +5,7 @@ import numpy as np
 from numpy import fft
 import scipy.interpolate as interpolate
 
-def estimate_fundamental_mode(y, dt=1, flb=0, fub=np.inf, axis=-1):
+def estimate_fundamental_mode(y, dt: float=1, flb: float=0, fub: float=np.inf, axis: int=-1):
     """
     Return information about the fundamental mode of a signal
 
@@ -20,24 +20,26 @@ def estimate_fundamental_mode(y, dt=1, flb=0, fub=np.inf, axis=-1):
     y_ = y - np.mean(y, axis=axis, keepdims=True)
 
     # Compute the DFT and frequency components
-    dfty = fft.rfft(y_, axis=axis)
+    N = y_.shape[axis]
+    dfty = fft.rfft(y_, N, axis=axis)
+    f = fft.rfftfreq(N, d=dt)
+    df = f[1] - f[0]
 
-    # Offset `f`'s shape so that it broadcasts with `dfty`
+     # Offset `f`'s shape so that it broadcasts with `dfty`
     if axis < 0:
-        noffset = 1 - axis
+        noffset = -1 - axis
     else:
         noffset = y.ndim - axis - 1
-    idx_offset_dims = (slice(None),) + (np.newaxis,)*noffset
-    f = fft.rfftfreq(y.shape[axis], d=dt)[idx_offset_dims]
-    df = f[1, ...] - f[0, ...]
+    _idx_inrange = np.logical_and(f>flb, f<fub)
+    idx_inrange = (Ellipsis,) + (_idx_inrange,) + (slice(None),)*noffset
 
-    idx_inrange = np.logical_and(f>flb, f<fub)
-    f = f[idx_inrange]
+    f = f[_idx_inrange]
     dfty = dfty[idx_inrange]
 
-    idx_f0 = np.argmax(np.abs(dfty), axis=axis)
+    _idx_f0 = np.argmax(np.abs(dfty), axis=axis)
+    idx_f0 = (Ellipsis,) + (_idx_f0,) + (slice(None),)*noffset
 
-    return f[idx_f0], np.angle(dfty[idx_f0], axis=axis), df
+    return f[_idx_f0], np.angle(dfty[idx_f0]), df
 
 def estimate_periodic_statistics(y, n_period):
     """
