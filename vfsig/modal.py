@@ -40,7 +40,9 @@ def estimate_fundamental_mode(y, dt: float=1, flb: float=0, fub: float=np.inf, a
     _idx_f0 = np.argmax(np.abs(dfty), axis=axis)
     idx_f0 = (Ellipsis,) + (_idx_f0,) + (slice(None),)*noffset
 
-    return f[_idx_f0], np.angle(dfty[idx_f0]), df
+    info = {}
+    dphase = 0
+    return f[_idx_f0], np.angle(dfty[idx_f0]), df, dphase, info
 
 def estimate_fundamental_mode_from_peaks(y, dt: float=1, **find_peaks_kwargs):
     peaks, peak_properties = signal.find_peaks(y, **find_peaks_kwargs)
@@ -48,7 +50,13 @@ def estimate_fundamental_mode_from_peaks(y, dt: float=1, **find_peaks_kwargs):
     periods = peaks[1:]-peaks[:-1]
     period = np.mean(periods)
     phase = peaks[0]
-    return dt*period, dt*phase, dt*np.std(periods)
+    dphase = 0
+
+    info = {
+        'peaks': peaks,
+        'peak_properties': peak_properties
+    }
+    return 1/(dt*period), 1/(dt*phase), 1/(dt*np.std(periods)), dphase, info
 
 def estimate_periodic_statistics(y, n_period):
     """
