@@ -3,6 +3,7 @@ This module contains functions to compute frequency domain quantities of a signa
 """
 import numpy as np
 from numpy import fft
+from scipy import signal
 import scipy.interpolate as interpolate
 
 def estimate_fundamental_mode(y, dt: float=1, flb: float=0, fub: float=np.inf, axis: int=-1):
@@ -40,6 +41,14 @@ def estimate_fundamental_mode(y, dt: float=1, flb: float=0, fub: float=np.inf, a
     idx_f0 = (Ellipsis,) + (_idx_f0,) + (slice(None),)*noffset
 
     return f[_idx_f0], np.angle(dfty[idx_f0]), df
+
+def estimate_fundamental_mode_from_peaks(y, dt: float=1, **find_peaks_kwargs):
+    peaks, peak_properties = signal.find_peaks(y, **find_peaks_kwargs)
+
+    periods = peaks[1:]-peaks[:-1]
+    period = np.mean(periods)
+    phase = peaks[0]
+    return dt*period, dt*phase, dt*np.std(periods)
 
 def estimate_periodic_statistics(y, n_period):
     """
