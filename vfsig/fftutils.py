@@ -11,14 +11,14 @@ def psd_from_fft(u: np.ndarray, v: np.ndarray, axis: int=-1) -> np.ndarray:
     """
     Return power spectral density (psd) from fourier domain inputs
 
-    If `u` and `v` have units of a and b, respectively, then the psd has units
-    of a*b/frequency bin. To obtain physical units for the frequency, you will
-    have to divide by the size of the frequency bin.
+    If `u` and `v` have units of [a] and [b], respectively, then the psd has
+    units of [a][b]/[frequency bin unit]. To obtain physical units for the
+    frequency, you will have to divide by the size of the frequency bin.
 
     Parameters
     ----------
     u, v : np.array
-        Frequency domain signals as obtained from `np.fft`
+        Frequency domain signals as obtained from `np.fft.fft`
     axis : int
         Axis to compute psd along
     """
@@ -35,9 +35,9 @@ def power_from_fft(u: np.ndarray, v: np.ndarray, axis: int=-1) -> complex:
     Parameters
     ----------
     u, v : np.array
-        Frequency domain signals
+        Frequency domain signals as obtained from `np.fft.fft`
     axis : int
-        Axis to compute along
+        Axis to compute power along
     """
     return np.sum(psd_from_fft(u, v, axis), axis=axis)
 
@@ -45,9 +45,9 @@ def psd_from_rfft(u: np.ndarray, v: np.ndarray, n: Optional[int]=None, axis: int
     """
     Return power spectral density (psd) from one-sided fourier domain inputs
 
-    If `u` and `v` have units of a and b, respectively, then the psd has units
-    of a*b/frequency bin. To obtain physical units for the frequency, you will
-    have to divide by the size of the frequency bin.
+    If `u` and `v` have units of [a] and [b], respectively, then the psd has
+    units of [a][b]/[frequency bin unit]. To obtain physical units for the
+    frequency, you will have to divide by the size of the frequency bin.
 
     Parameters
     ----------
@@ -68,7 +68,7 @@ def psd_from_rfft(u: np.ndarray, v: np.ndarray, n: Optional[int]=None, axis: int
     N = u.shape[axis]
 
     # Create scaling arrays to account for dropped symmetric components
-    _shape = (0,)*(axis) + (N,) + (0,)*(NDIM-axis-1)
+    _shape = (1,)*(axis) + (N,) + (1,)*(NDIM-axis-1)
     _a = np.ones(_shape)
 
     if n//2 == 0:
@@ -77,9 +77,8 @@ def psd_from_rfft(u: np.ndarray, v: np.ndarray, n: Optional[int]=None, axis: int
     else:
         idx = (0,)*(axis) + (slice(1, -1),) + (0,)*(NDIM-axis-1)
         _a[idx] = 2.0
-    breakpoint()
 
-    return 1/n * np.real(_a*np.conjugate(u)*(v))
+    return 1/n * np.real(_a*np.conjugate(u)*v)
 
 def power_from_rfft(u: np.ndarray, v: np.ndarray, n: Optional[int]=None, axis: int=-1) -> float:
     """
