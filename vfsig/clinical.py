@@ -179,8 +179,8 @@ def opening_ratio(y, t=None, dt=1.0, axis=-1, closed_ub=0):
     }
 
     ind_opening = np.array(
-        is_opening(y, ind_kwargs), dtype=np.float)
-    opening_duration = np.trapz(ind_opening, trapz_kwargs)
+        is_opening(y, **ind_kwargs), dtype=np.float)
+    opening_duration = np.trapz(ind_opening, **trapz_kwargs)
     duration = t[-1]-t[0]
     return opening_duration/duration
 
