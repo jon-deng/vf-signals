@@ -175,7 +175,7 @@ def opening_ratio(y, t=None, dt=1.0, axis=-1, closed_ub=0):
         't': t, 'dt': dt, 'closed_ub': closed_ub
     }
     trapz_kwargs = {
-        'dt': t, 'axis': axis
+        'x': t, 'dx': dt, 'axis': axis
     }
 
     ind_opening = np.array(
