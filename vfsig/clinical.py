@@ -155,7 +155,7 @@ def closing_ratio(y, t=None, dt=1.0, axis=-1, closed_ub=0):
         't': t, 'dt': dt, 'closed_ub': closed_ub
     }
     trapz_kwargs = {
-        't': t, 'dt': dt, 'axis': axis
+        'x': t, 'dx': dt, 'axis': axis
     }
 
     ind_closing = np.array(is_closing(y, **ind_kwargs), dtype=np.float)
