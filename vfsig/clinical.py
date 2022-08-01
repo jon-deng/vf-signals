@@ -85,6 +85,13 @@ def is_opening(y, t=None, dt=1.0, closed_ub=0):
     )
 
 ## Return scalar summaries of the signal
+def _duration(n, t, dt):
+    if t is None:
+        duration = (n-1)*dt
+    else:
+        duration = t[-1]-t[0]
+    return duration
+
 def _add_measure_docstring(measure_function):
     add_docstring = """
     Parameters
@@ -134,7 +141,7 @@ def closed_ratio(y, t=None, dt=1.0, axis=-1, closed_ub=0):
         is_closed(y, **ind_kwargs), dtype=np.float
     )
     closed_duration = np.trapz(ind_closed, **trapz_kwargs)
-    duration = t[-1]-t[0]
+    duration = _duration(y.shape[axis], t, dt)
     return closed_duration/duration
 
 @_add_measure_docstring
@@ -165,10 +172,7 @@ def closing_ratio(y, t=None, dt=1.0, axis=-1, closed_ub=0):
 
     ind_closing = np.array(is_closing(y, **ind_kwargs), dtype=np.float)
     closing_duration = np.trapz(ind_closing, **trapz_kwargs)
-    if t is None:
-        duration = (y.shape[axis]-1)*dt
-    else:
-        duration = t[-1]-t[0]
+    duration = _duration(y.shape[axis], t, dt)
     return closing_duration/duration
 
 @_add_measure_docstring
@@ -189,10 +193,7 @@ def opening_ratio(y, t=None, dt=1.0, axis=-1, closed_ub=0):
     ind_opening = np.array(
         is_opening(y, **ind_kwargs), dtype=np.float)
     opening_duration = np.trapz(ind_opening, **trapz_kwargs)
-    if t is None:
-        duration = (y.shape[axis]-1)*dt
-    else:
-        duration = t[-1]-t[0]
+    duration = _duration(y.shape[axis], t, dt)
     return opening_duration/duration
 
 @_add_measure_docstring
