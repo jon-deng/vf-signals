@@ -60,11 +60,14 @@ def is_closing(y, t=None, dt=1.0, closed_ub=0):
     Return a boolean array indicating VFs are closing
 
     """
-    y_prime = np.gradient(y, t)
+    if t is None:
+        y_prime = np.gradient(y, dt)
+    else:
+        y_prime = np.gradient(y, t)
     return np.logical_and(
         is_open(y, t=t, dt=dt, closed_ub=closed_ub),
         y_prime < 0
-        )
+    )
 
 @_add_signal_docstring
 def is_opening(y, t=None, dt=1.0, closed_ub=0):
