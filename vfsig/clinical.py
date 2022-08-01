@@ -6,7 +6,6 @@ The definitions of these ratios come from a variety of papers including
 E. Holmberg, R. Hillman, J. Perkell - Glottal airflow ... - 1998 - JASA
 """
 
-from xml.dom import ValidationErr
 import numpy as np
 import scipy as sp
 
