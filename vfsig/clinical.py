@@ -165,7 +165,10 @@ def closing_ratio(y, t=None, dt=1.0, axis=-1, closed_ub=0):
 
     ind_closing = np.array(is_closing(y, **ind_kwargs), dtype=np.float)
     closing_duration = np.trapz(ind_closing, **trapz_kwargs)
-    duration = t[-1]-t[0]
+    if t is None:
+        duration = (y.shape[axis]-1)*dt
+    else:
+        duration = t[-1]-t[0]
     return closing_duration/duration
 
 @_add_measure_docstring
@@ -186,7 +189,10 @@ def opening_ratio(y, t=None, dt=1.0, axis=-1, closed_ub=0):
     ind_opening = np.array(
         is_opening(y, **ind_kwargs), dtype=np.float)
     opening_duration = np.trapz(ind_opening, **trapz_kwargs)
-    duration = t[-1]-t[0]
+    if t is None:
+        duration = (y.shape[axis]-1)*dt
+    else:
+        duration = t[-1]-t[0]
     return opening_duration/duration
 
 @_add_measure_docstring
