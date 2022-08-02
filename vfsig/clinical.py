@@ -1,9 +1,8 @@
 """
-This module contains functions to compute classic ratios from common vocal fold
-(VF) derived signals
+Functions to compute common clinical measures from speech signals
 
-The definitions of these ratios come from a variety of papers including
-E. Holmberg, R. Hillman, J. Perkell - Glottal airflow ... - 1998 - JASA
+The `..._ratio` function definitions come from the paper:
+E. Holmberg, R. Hillman, J. Perkell - Glottal airflow and transglottal air pressure measurements for male and female speakers in soft, normal, and loud voice - 1998 - JASA
 """
 
 import numpy as np
@@ -14,6 +13,7 @@ import scipy as sp
 # (open, closed, etc..)
 def _add_signal_docstring(signal_function):
     add_docstring = """
+
     Parameters
     ----------
     y : array_like
@@ -40,7 +40,6 @@ def _add_signal_docstring(signal_function):
 def is_closed(y, t=None, dt=1.0, closed_ub=0):
     """
     Return a boolean array indicating VF closure
-
     """
     return y < closed_ub
 
@@ -48,7 +47,6 @@ def is_closed(y, t=None, dt=1.0, closed_ub=0):
 def is_open(y, t=None, dt=1.0, closed_ub=0):
     """
     Return a boolean array indicating VFs are open
-
     """
     return np.logical_not(
         is_closed(y, t=t, dt=dt, closed_ub=closed_ub)
@@ -58,7 +56,6 @@ def is_open(y, t=None, dt=1.0, closed_ub=0):
 def is_closing(y, t=None, dt=1.0, closed_ub=0):
     """
     Return a boolean array indicating VFs are closing
-
     """
     if t is None:
         y_prime = np.gradient(y, dt)
@@ -73,7 +70,6 @@ def is_closing(y, t=None, dt=1.0, closed_ub=0):
 def is_opening(y, t=None, dt=1.0, closed_ub=0):
     """
     Return a boolean array indicating VFs are opening
-
     """
     if t is None:
         y_prime = np.gradient(y, dt)
@@ -94,6 +90,7 @@ def _duration(n, t, dt):
 
 def _add_measure_docstring(measure_function):
     add_docstring = """
+
     Parameters
     ----------
     y : array_like
@@ -128,7 +125,6 @@ def closed_ratio(y, t=None, dt=1.0, axis=-1, closed_ub=0):
     Return the closed ratio
 
     This is the ratio of time spent closed to total time
-
     """
     ind_kwargs = {
         't': t, 'dt': dt, 'closed_ub': closed_ub
@@ -150,7 +146,6 @@ def open_ratio(y, t=None, dt=1.0, axis=-1, closed_ub=0):
     Return the open ratio
 
     This is the ratio of time spent open to total time
-
     """
     return 1 - closed_ratio(y, t=t, dt=dt, axis=axis, closed_ub=closed_ub)
 
@@ -160,7 +155,6 @@ def closing_ratio(y, t=None, dt=1.0, axis=-1, closed_ub=0):
     Return the closing ratio
 
     This is the ratio of time spent closing to the total time
-
     """
     # Create kwargs for the 'indicator' and 'numpy trapz' functions
     ind_kwargs = {
@@ -181,7 +175,6 @@ def opening_ratio(y, t=None, dt=1.0, axis=-1, closed_ub=0):
     Return the opening ratio
 
     This is the ratio of time spent opening to the total time
-
     """
     ind_kwargs = {
         't': t, 'dt': dt, 'closed_ub': closed_ub
@@ -202,7 +195,6 @@ def speed_ratio(y, t=None, dt=None, axis=-1, closed_ub=0):
     Return the speed ratio
 
     This is the ratio of opening to closing times
-
     """
     kwargs = {
         't': t, 'dt': dt, 'axis': axis, 'closed_ub': closed_ub
@@ -213,7 +205,6 @@ def speed_ratio(y, t=None, dt=None, axis=-1, closed_ub=0):
 def mfdr(y, t=None, dt=None, axis=-1, closed_ub=0):
     """
     Return the maximum flow declination rate (MFDR)
-
     """
     ind_kwargs = {
         't': t, 'dt': dt, 'closed_ub': closed_ub
@@ -236,7 +227,6 @@ def ac_flow(y, t=None, dt=None, axis=-1, closed_ub=0):
     Return the AC flow
 
     This is the amplitude from minimum to maximum of the signal
-
     """
     return np.max(y, axis=axis) - np.min(y, axis=axis)
 
@@ -244,7 +234,6 @@ def ac_flow(y, t=None, dt=None, axis=-1, closed_ub=0):
 def acdc(y, t=None, dt=None, axis=-1, closed_ub=0):
     """
     See Holmberg et al. for the definition
-
     """
     y_ac = y - y.min()
 
