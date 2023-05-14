@@ -80,7 +80,7 @@ def y_is_opening(y_linear, y_slope):
     else:
         return np.zeros(y_linear.shape, dtype=bool)
 
-def test_is_closing(y_linear, time, y_is_opening):
+def test_is_opening(y_linear, time, y_is_opening):
     assert np.all(clinical.is_opening(y_linear, time, closed_ub=0) == y_is_opening)
 
 
