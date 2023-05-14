@@ -93,8 +93,25 @@ class TestScalarMeasures:
     """
     Test the signal measures defined in (Holmberg et al., 1988)
     """
+    @pytest.fixture()
+    def closed_ratio(self, y_slope, time, time_intercept):
+        t0, t1 = time[..., 0], time[..., -1]
+        t_total = t1- t0
+        if y_slope > 0:
+            t_closed = time_intercept - t0
+            return t_closed/t_total
+        elif y_slope < 0:
+            t_closed = t1 - time_intercept
+            return t_closed/t_total
+        else:
+            np.ones(t_total.shape)
 
-    # def test_closed_ratio():
+    def test_closed_ratio(self, y_linear, time, closed_ratio):
+        # TODO: This isn't working right now
+        _closed_ratio = clinical.closed_ratio(y_linear, time)
+        assert np.all(np.isclose(_closed_ratio, closed_ratio))
+
+
 # def setup_tdomain_signal():
 #     dt = 0.01
 #     t = dt*np.arange(1024)
