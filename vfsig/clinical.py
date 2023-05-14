@@ -143,9 +143,7 @@ def closed_ratio(y: SignalArray, t: TimeArray, closed_ub=0):
     axis = -1
     trapz_kwargs = {'x': t, 'axis': axis}
 
-    ind_closed = np.array(
-        is_closed(y, t, closed_ub), dtype=np.float
-    )
+    ind_closed = np.array(is_closed(y, t, closed_ub), dtype=float)
     closed_duration = np.trapz(ind_closed, **trapz_kwargs)
     duration = _duration(t, axis)
     return closed_duration/duration
@@ -170,7 +168,7 @@ def closing_ratio(y: SignalArray, t: TimeArray, closed_ub=0):
     axis = -1
     trapz_kwargs = {'x': t, 'axis': axis}
 
-    ind_closing = np.array(is_closing(y, t, closed_ub), dtype=np.float)
+    ind_closing = np.array(is_closing(y, t, closed_ub), dtype=float)
     closing_duration = np.trapz(ind_closing, **trapz_kwargs)
     duration = _duration(t, axis)
     return closing_duration/duration
@@ -185,7 +183,7 @@ def opening_ratio(y: SignalArray, t: TimeArray, closed_ub=0):
     axis = -1
     trapz_kwargs = {'x': t, 'axis': axis}
 
-    ind_opening = np.array(is_opening(y, t, closed_ub), dtype=np.float)
+    ind_opening = np.array(is_opening(y, t, closed_ub), dtype=float)
     opening_duration = np.trapz(ind_opening, **trapz_kwargs)
     duration = _duration(t, axis)
     return opening_duration/duration

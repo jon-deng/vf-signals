@@ -36,27 +36,28 @@ def y_linear(signal_shape, time, time_intercept, y_slope):
     y[:] = y_slope*(time-time_intercept)
     return y
 
+
+# To test if signals are open/closed, generate a boolean array indicating
+# whether the signal should be open or closed, then generate a signal
+# according to that
+@pytest.fixture()
+def is_closed(signal_shape):
+    return np.random.randint(0, 2, size=signal_shape, dtype=bool)
+
+@pytest.fixture()
+def y_closed(is_closed):
+    y = np.zeros(is_closed.shape)
+    y[is_closed] = -1.0
+    y[np.logical_not(is_closed)] = 1.0
+    return y
+
 class TestStateIndicatorFunctions:
 
-    # To test if signals are open/closed, generate a boolean array indicating
-    # whether the signal should be open or closed, then generate a signal
-    # according to that
-    @pytest.fixture()
-    def y_is_closed(self, signal_shape):
-        return np.random.randint(0, 1, size=signal_shape, dtype=bool)
+    def test_is_closed(self, y_closed, is_closed):
+        assert np.all(clinical.is_closed(y_closed) == is_closed)
 
-    @pytest.fixture()
-    def y_closed(self, y_is_closed):
-        y = np.zeros(y_is_closed.shape)
-        y[y_is_closed] == -1.0
-        y[np.logical_not(y_is_closed)] == 1.0
-        return y
-
-    def test_is_closed(self, y_closed, y_is_closed):
-        assert np.all(clinical.is_closed(y_closed) == y_is_closed)
-
-    def test_is_open(self, y_closed, y_is_closed):
-        assert np.all(clinical.is_open(y_closed) != y_is_closed)
+    def test_is_open(self, y_closed, is_closed):
+        assert np.all(clinical.is_open(y_closed) != is_closed)
 
     # To test if closing/opening phases are detected properly, generate linearly
     # increasing/decreasing signals that cross the x-axis
@@ -93,22 +94,39 @@ class TestScalarMeasures:
     """
     Test the signal measures defined in (Holmberg et al., 1988)
     """
-    @pytest.fixture()
-    def closed_ratio(self, y_slope, time, time_intercept):
-        t0, t1 = time[..., 0], time[..., -1]
-        t_total = t1- t0
-        if y_slope > 0:
-            t_closed = time_intercept - t0
-            return t_closed/t_total
-        elif y_slope < 0:
-            t_closed = t1 - time_intercept
-            return t_closed/t_total
-        else:
-            np.ones(t_total.shape)
 
-    def test_closed_ratio(self, y_linear, time, closed_ratio):
-        # TODO: This isn't working right now
-        _closed_ratio = clinical.closed_ratio(y_linear, time)
+    # To test the closed ratio is correct, we use the fact that integrating an
+    # indicator function for closure with `np.trapz` counts:
+    #   +1 if VFs are closed at both endpoints of the time interval
+    #   +0.5 if VFs are closed/open at endpoints of the time interval
+    #   +0 if VFs are open at both endpoints of the time interval
+    # TODO: This is probably not a great test but I can't think of what else to do
+    @pytest.fixture()
+    def closed_ratio(self, is_closed, time):
+        is_transition_interval = is_closed[..., :-1] != is_closed[..., 1:]
+        not_transition_interval = np.logical_not(is_transition_interval)
+        is_closed_interval = np.logical_and(is_closed[..., :-1], is_closed[..., 1:])
+        not_closed_interval = np.logical_not(is_closed_interval)
+
+        # Multiply by the ones array to make sure `dt` has the right broadcasted shape
+        dt = np.ones(is_closed_interval.shape)*(time[..., 1:] - time[..., :-1])
+        dt[np.logical_and(not_closed_interval, not_transition_interval)] = 0
+        dt[is_transition_interval] = 0.5*dt[is_transition_interval]
+
+        t_total = time[..., -1] - time[..., 0]
+        t_closed = np.sum(dt, axis=-1)
+        return t_closed/t_total
+
+    @pytest.fixture()
+    def y_closed(self, is_closed, time):
+        y_is_open = np.logical_not(is_closed)
+        y = np.ones(is_closed.shape)
+        y[is_closed] = np.random.rand(is_closed.sum()) - 1
+        y[y_is_open] = np.random.rand((y_is_open).sum())
+        return y
+
+    def test_closed_ratio(self, y_closed, time, closed_ratio):
+        _closed_ratio = clinical.closed_ratio(y_closed, time)
         assert np.all(np.isclose(_closed_ratio, closed_ratio))
 
 
