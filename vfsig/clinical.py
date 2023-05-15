@@ -133,6 +133,7 @@ def _add_measure_docstring(measure_function):
     measure_function.__doc__ = measure_function.__doc__ + add_docstring
     return measure_function
 
+@_add_optional_time
 @_add_measure_docstring
 def closed_ratio(y: SignalArray, t: TimeArray, closed_ub=0):
     """
@@ -148,6 +149,7 @@ def closed_ratio(y: SignalArray, t: TimeArray, closed_ub=0):
     duration = _duration(t, axis)
     return closed_duration/duration
 
+@_add_optional_time
 @_add_measure_docstring
 def open_ratio(y: SignalArray, t: TimeArray, closed_ub=0):
     """
@@ -157,6 +159,7 @@ def open_ratio(y: SignalArray, t: TimeArray, closed_ub=0):
     """
     return 1 - closed_ratio(y, t , closed_ub)
 
+@_add_optional_time
 @_add_measure_docstring
 def closing_ratio(y: SignalArray, t: TimeArray, closed_ub=0):
     """
@@ -173,6 +176,7 @@ def closing_ratio(y: SignalArray, t: TimeArray, closed_ub=0):
     duration = _duration(t, axis)
     return closing_duration/duration
 
+@_add_optional_time
 @_add_measure_docstring
 def opening_ratio(y: SignalArray, t: TimeArray, closed_ub=0):
     """
@@ -188,6 +192,7 @@ def opening_ratio(y: SignalArray, t: TimeArray, closed_ub=0):
     duration = _duration(t, axis)
     return opening_duration/duration
 
+@_add_optional_time
 @_add_measure_docstring
 def speed_ratio(y: SignalArray, t: TimeArray, closed_ub=0):
     """
@@ -197,6 +202,7 @@ def speed_ratio(y: SignalArray, t: TimeArray, closed_ub=0):
     """
     return opening_ratio(y, t, closed_ub) / closing_ratio(y, t, closed_ub)
 
+@_add_optional_time
 @_add_measure_docstring
 def mfdr(y: SignalArray, t: TimeArray, closed_ub=0):
     """
@@ -207,6 +213,7 @@ def mfdr(y: SignalArray, t: TimeArray, closed_ub=0):
     yp = np.gradient(y, t, axis=axis)
     return np.min(yp[ind_open])
 
+@_add_optional_time
 @_add_measure_docstring
 def ac_flow(y: SignalArray, t: TimeArray, closed_ub=0):
     """
@@ -217,6 +224,7 @@ def ac_flow(y: SignalArray, t: TimeArray, closed_ub=0):
     axis = -1
     return np.max(y, axis=axis) - np.min(y, axis=axis)
 
+@_add_optional_time
 @_add_measure_docstring
 def acdc(y: SignalArray, t: TimeArray, closed_ub=0):
     """
@@ -230,6 +238,7 @@ def acdc(y: SignalArray, t: TimeArray, closed_ub=0):
     y_ac_mean = np.trapz(t, y_ac, axis=axis)/T
     return y_ac_rms/y_ac_mean
 
+@_add_optional_time
 @_add_measure_docstring
 def rms_time(y: SignalArray, t: TimeArray, closed_ub=0):
     """
