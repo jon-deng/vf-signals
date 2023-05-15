@@ -1,43 +1,81 @@
+"""
+Test the module `fftutils`
+"""
+
+import pytest
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 from vfsig import fftutils
 
-def setup_signals():
+@pytest.fixture()
+def n_time():
     """
-    Setup two u and v signals in the time domains
+    Return the number of time points
     """
-    N = 2**12
-    NUM_PERIOD = 10
+    return 2**12
 
-    x = np.linspace(0, NUM_PERIOD, N+1)[:-1]
-    u = 5*np.sin(2*np.pi*x)
+NUM_PERIOD = 10
 
-    # Shift v forward by 1/10 cycle relative to u
-    x = np.linspace(0, NUM_PERIOD, N+1)[:-1] - 0.1
-    v = np.sin(2*np.pi*x)
+@pytest.fixture()
+def time_period(n_time):
+    return np.linspace(0, NUM_PERIOD, n_time+1)[:-1]
 
+@pytest.fixture()
+def time(n_time):
+    # The frequency is [cycles/s]
     FREQ = 100
-    dt = (1/FREQ*NUM_PERIOD)/N
-    t = dt*np.arange(N)
+    # The `(1/FREQ * NUM_PERIOD)` gives the total time of the signal
+    # since it's [time/cycle] * [# of cycles]
+    # Dividing by `n_time`, the number of time points in the signal, then gives
+    # the time interval between points
+    dt = (1/FREQ*NUM_PERIOD)/n_time
+    return  dt*np.arange(n_time)
 
-    return t, u, v
+@pytest.fixture()
+def ut(time_period):
+    # The frequency of these signals is measures as cycles/[period]
+    # i.e. a frequency of 1, will just produce a signal with the default frequency
+    x = time_period
+    return 5*np.sin(2*np.pi*x)
 
-if __name__ == '__main__':
-    t, u, v = setup_signals()
-    print(u.size, v.size)
+@pytest.fixture()
+def vt(time_period):
+    x = time_period
+    return 5*np.sin(2*np.pi*x)
 
-    fig, ax = plt.subplots(1, 1)
-    ax.plot(t, u, label="u")
-    ax.plot(t, v, label="v")
-    fig.savefig("test_fftutils.png")
+@pytest.fixture()
+def ufft(ut):
+    return np.fft.fft(ut)
 
-    fft_u = np.fft.fft(u)
-    fft_v = np.fft.fft(v)
+@pytest.fixture()
+def vfft(vt):
+    return np.fft.fft(vt)
 
-    print(np.sum(np.conj(u)*v), fftutils.power_from_fft(fft_u, fft_v))
+@pytest.fixture()
+def urfft(ut):
+    return np.fft.rfft(ut)
 
-    rfft_u = np.fft.rfft(u)
-    rfft_v = np.fft.rfft(v)
-    breakpoint()
-    print(np.sum(np.conj(u)*v), fftutils.power_from_rfft(rfft_u, rfft_v, n=u.size))
+@pytest.fixture()
+def vrfft(vt):
+    return np.fft.rfft(vt)
+
+@pytest.fixture()
+def axis():
+    return -1
+
+def test_power_from_fft(ut, vt, ufft, vfft, axis):
+    print(np.sum(np.conj(ut)*vt), fftutils.power_from_fft(ufft, vfft, axis=axis))
+
+    assert np.isclose(
+        np.sum(np.conj(ut)*vt, axis=axis),
+        fftutils.power_from_fft(ufft, vfft, axis=axis)
+    )
+
+def test_power_from_rfft(ut, vt, urfft, vrfft, axis):
+    assert np.isclose(
+        np.sum(np.conj(ut)*vt, axis=axis),
+        fftutils.power_from_rfft(urfft, vrfft, axis=axis, n_time=ut.shape[axis])
+    )
+
