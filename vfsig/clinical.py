@@ -12,6 +12,27 @@ from numpy.typing import NDArray
 import numpy as np
 import scipy as sp
 
+RealSignal = NDArray[float]
+BoolSignal = NDArray[bool]
+TimeArray = Optional[RealSignal]
+
+## Decorator for adding `axis` and optional `time` and `dt` kwargs
+def _add_optional_kwargs(func):
+    def dec_func(
+            y: RealSignal, t: TimeArray=None, dt: Optional[float]=1.0, axis: Optional[int]=-1,
+            closed_ub: Optional[float]=0.0
+        ):
+        if t is None:
+            time = dt*np.arange(y.shape[-1])
+        else:
+            time = t
+
+        y = np.moveaxis(y, axis, -1)
+        time = np.moveaxis(time, axis, -1)
+        return func(y, time, closed_ub=closed_ub)
+
+    return dec_func
+
 ## State indicator functions
 # These functions indicate whether the VFs are in some state (open, closed,
 # etc..) or not
@@ -43,33 +64,17 @@ def _add_state_indicator_docstring(signal_function):
     signal_function.__doc__ = signal_function.__doc__ + add_docstring
     return signal_function
 
-def _add_optional_time(state_indicator_function):
-    def new_state_indicator_function(
-            y: SignalArray, t: TimeArray=None, dt: float=1.0,
-            closed_ub: Optional[float]=0.0
-        ):
-        if t is None:
-            time = dt*np.arange(y.shape[-1])
-        else:
-            time = t
-        return state_indicator_function(y, time, closed_ub=closed_ub)
-
-    return new_state_indicator_function
-
-TimeArray = Optional[NDArray[bool]]
-SignalArray = NDArray[float]
-
-@_add_optional_time
+@_add_optional_kwargs
 @_add_state_indicator_docstring
-def is_closed(y: SignalArray, t: TimeArray, closed_ub: Optional[float]=0) -> NDArray[bool]:
+def is_closed(y: RealSignal, t: TimeArray, closed_ub: Optional[float]=0) -> BoolSignal:
     """
     Return a boolean array indicating if VFs are closed
     """
     return y < closed_ub
 
-@_add_optional_time
+@_add_optional_kwargs
 @_add_state_indicator_docstring
-def is_open(y: SignalArray, t: TimeArray, closed_ub=0):
+def is_open(y: RealSignal, t: TimeArray, closed_ub=0) -> BoolSignal:
     """
     Return a boolean array indicating if VFs are opening
     """
@@ -77,9 +82,9 @@ def is_open(y: SignalArray, t: TimeArray, closed_ub=0):
         is_closed(y, t=t, closed_ub=closed_ub)
     )
 
-@_add_optional_time
+@_add_optional_kwargs
 @_add_state_indicator_docstring
-def is_closing(y: SignalArray, t: TimeArray, closed_ub=0):
+def is_closing(y: RealSignal, t: TimeArray, closed_ub=0) -> BoolSignal:
     """
     Return a boolean array indicating if VFs are closing
     """
@@ -90,9 +95,9 @@ def is_closing(y: SignalArray, t: TimeArray, closed_ub=0):
         y_prime < 0
     )
 
-@_add_optional_time
+@_add_optional_kwargs
 @_add_state_indicator_docstring
-def is_opening(y: SignalArray, t: TimeArray, closed_ub=0):
+def is_opening(y: RealSignal, t: TimeArray, closed_ub=0) -> BoolSignal:
     """
     Return a boolean array indicating if VFs are opening
     """
@@ -104,8 +109,8 @@ def is_opening(y: SignalArray, t: TimeArray, closed_ub=0):
     )
 
 ## Return scalar summaries of the signal
-def _duration(t: TimeArray, axis: Optional[float]=-1):
-    return t[-1]-t[0]
+def _duration(t: TimeArray) -> float:
+    return t[..., -1]-t[..., 0]
 
 def _add_measure_docstring(measure_function):
     add_docstring = """
@@ -133,119 +138,105 @@ def _add_measure_docstring(measure_function):
     measure_function.__doc__ = measure_function.__doc__ + add_docstring
     return measure_function
 
-@_add_optional_time
+@_add_optional_kwargs
 @_add_measure_docstring
-def closed_ratio(y: SignalArray, t: TimeArray, closed_ub=0):
+def closed_ratio(y: RealSignal, t: TimeArray, closed_ub=0):
     """
     Return the closed ratio
 
     This is the ratio of time spent closed to total time
     """
-    axis = -1
-    trapz_kwargs = {'x': t, 'axis': axis}
-
     ind_closed = np.array(is_closed(y, t, closed_ub), dtype=float)
-    closed_duration = np.trapz(ind_closed, **trapz_kwargs)
-    duration = _duration(t, axis)
+    closed_duration = np.trapz(ind_closed, x=t, axis=-1)
+    duration = _duration(t)
     return closed_duration/duration
 
-@_add_optional_time
+@_add_optional_kwargs
 @_add_measure_docstring
-def open_ratio(y: SignalArray, t: TimeArray, closed_ub=0):
+def open_ratio(y: RealSignal, t: TimeArray, closed_ub=0):
     """
     Return the open ratio
 
     This is the ratio of time spent open to total time
     """
-    return 1 - closed_ratio(y, t , closed_ub)
+    return 1 - closed_ratio(y, t , closed_ub=closed_ub)
 
-@_add_optional_time
+@_add_optional_kwargs
 @_add_measure_docstring
-def closing_ratio(y: SignalArray, t: TimeArray, closed_ub=0):
+def closing_ratio(y: RealSignal, t: TimeArray, closed_ub=0):
     """
     Return the closing ratio
 
     This is the ratio of time spent closing to the total time
     """
-    # Create kwargs for the 'indicator' and 'numpy trapz' functions
-    axis = -1
-    trapz_kwargs = {'x': t, 'axis': axis}
-
     ind_closing = np.array(is_closing(y, t, closed_ub), dtype=float)
-    closing_duration = np.trapz(ind_closing, **trapz_kwargs)
-    duration = _duration(t, axis)
+    closing_duration = np.trapz(ind_closing, x=t, axis=-1)
+    duration = _duration(t)
     return closing_duration/duration
 
-@_add_optional_time
+@_add_optional_kwargs
 @_add_measure_docstring
-def opening_ratio(y: SignalArray, t: TimeArray, closed_ub=0):
+def opening_ratio(y: RealSignal, t: TimeArray, closed_ub=0):
     """
     Return the opening ratio
 
     This is the ratio of time spent opening to the total time
     """
-    axis = -1
-    trapz_kwargs = {'x': t, 'axis': axis}
-
     ind_opening = np.array(is_opening(y, t, closed_ub), dtype=float)
-    opening_duration = np.trapz(ind_opening, **trapz_kwargs)
-    duration = _duration(t, axis)
+    opening_duration = np.trapz(ind_opening, x=t, axis=-1)
+    duration = _duration(t)
     return opening_duration/duration
 
-@_add_optional_time
+@_add_optional_kwargs
 @_add_measure_docstring
-def speed_ratio(y: SignalArray, t: TimeArray, closed_ub=0):
+def speed_ratio(y: RealSignal, t: TimeArray, closed_ub=0):
     """
     Return the speed ratio
 
     This is the ratio of opening to closing times
     """
-    return opening_ratio(y, t, closed_ub) / closing_ratio(y, t, closed_ub)
+    return opening_ratio(y, t, closed_ub=closed_ub) / closing_ratio(y, t, closed_ub=closed_ub)
 
-@_add_optional_time
+@_add_optional_kwargs
 @_add_measure_docstring
-def mfdr(y: SignalArray, t: TimeArray, closed_ub=0):
+def mfdr(y: RealSignal, t: TimeArray, closed_ub=0):
     """
     Return the maximum flow declination rate (MFDR)
     """
-    axis = -1
     ind_open = is_open(y, t, closed_ub)
-    yp = np.gradient(y, t, axis=axis)
+    yp = np.gradient(y, t, axis=-1)
     return np.min(yp[ind_open])
 
-@_add_optional_time
+@_add_optional_kwargs
 @_add_measure_docstring
-def ac_flow(y: SignalArray, t: TimeArray, closed_ub=0):
+def ac_flow(y: RealSignal, t: TimeArray, closed_ub=0):
     """
     Return the AC flow
 
     This is the amplitude from minimum to maximum of the signal
     """
-    axis = -1
-    return np.max(y, axis=axis) - np.min(y, axis=axis)
+    return np.max(y, axis=-1) - np.min(y, axis=-1)
 
-@_add_optional_time
+@_add_optional_kwargs
 @_add_measure_docstring
-def acdc(y: SignalArray, t: TimeArray, closed_ub=0):
+def acdc(y: RealSignal, t: TimeArray, closed_ub=0):
     """
     See Holmberg et al. for the definition
     """
-    axis = -1
     y_ac = y - y.min(axis=-1, keepdims=True)
 
-    T = _duration(t, axis)
-    y_ac_rms = np.sqrt(np.trapz(t, y_ac**2, axis=axis)/T)
-    y_ac_mean = np.trapz(t, y_ac, axis=axis)/T
+    T = _duration(t)
+    y_ac_rms = np.sqrt(np.trapz(t, y_ac**2, axis=-1)/T)
+    y_ac_mean = np.trapz(t, y_ac, axis=-1)/T
     return y_ac_rms/y_ac_mean
 
-@_add_optional_time
+@_add_optional_kwargs
 @_add_measure_docstring
-def rms_time(y: SignalArray, t: TimeArray, closed_ub=0):
+def rms_time(y: RealSignal, t: TimeArray, closed_ub=0):
     """
     Return the RMS of a time-domain signal
     """
-    axis = -1
-    return np.sqrt(np.mean(y**2, axis=axis))
+    return np.sqrt(np.mean(y**2, axis=-1))
 
 ## Frequency domain processing functions
 
