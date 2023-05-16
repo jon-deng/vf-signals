@@ -7,19 +7,22 @@ Citations
 ---------
 E. Holmberg, R. Hillman, and J. Perkell -- Glottal airflow and transglottal air pressure measurements for male and female speakers in soft, normal, and loud voice -- 1998 -- JASA
 """
-from typing import Optional
+from typing import Optional, Mapping, Any
 from numpy.typing import NDArray
 import numpy as np
 import scipy as sp
 
 RealSignal = NDArray[float]
+ComplexSignal = NDArray[complex]
 BoolSignal = NDArray[bool]
 TimeArray = Optional[RealSignal]
+
+OptAxis = Optional[int]
 
 ## Decorator for adding `axis` and optional `time` and `dt` kwargs
 def _add_optional_kwargs(func):
     def dec_func(
-            y: RealSignal, t: TimeArray=None, dt: Optional[float]=1.0, axis: Optional[int]=-1,
+            y: RealSignal, t: TimeArray=None, dt: Optional[float]=1.0, axis: OptAxis=-1,
             closed_ub: Optional[float]=0.0
         ):
         if t is None:
@@ -241,9 +244,14 @@ def rms_time(y: RealSignal, t: TimeArray, closed_ub=0):
 ## Frequency domain processing functions
 
 # Signals
-def prad_piston(q, f=None, df=1.0, axis=-1, piston_params=None):
+def prad_piston(
+        q: ComplexSignal,
+        f: Optional[RealSignal]=None, df: Optional[float]=1.0,
+        axis: OptAxis=-1,
+        piston_params: Optional[Mapping[str, float]]=None
+    ) -> ComplexSignal:
     """
-    Return the complex pressure amplitude from a flow source
+    Return the complex pressure amplitude from a flow source in the frequency domain
 
     The complex pressure amplitude assumes the flow source acts as a piston in
     and infinite baffle. The resulting complex pressure given the complex flow
@@ -252,13 +260,16 @@ def prad_piston(q, f=None, df=1.0, axis=-1, piston_params=None):
 
     Parameters
     ----------
-    q : np.array
-        The frequency domain components of q
-    f : np.array
-        Frequencies corresponding to components of `q` in [rad/unit time]
-    df : float
-        Frequency spacing of `q` components in [rad/unit time]
-    piston_params : dict
+    q: ComplexSignal of shape (..., N)
+        The frequency domain components of the flow rate. If the flow rate is
+        a time domain signal `qt`, this is the result of `np.fft.rfft(qt)`.
+    f: Optional[RealSignal] of shape (..., N)
+        Frequency bins corresponding to components of `q` in [rad/unit time]
+    df: Optional[float]
+        Frequency spacing of `q` components in [rad/unit time].
+    axis: OptAxis
+        The axis along which frequency varies.
+    piston_params: Mapping[str, float]
         A mapping of named piston parameters to values. The parameters are given
         by (see Figure 7.4.3 of Kinsler):
         'a' - radius of the piston
@@ -266,8 +277,13 @@ def prad_piston(q, f=None, df=1.0, axis=-1, piston_params=None):
         'theta' - angle from the piston central axis
         'rho' - density of raidating material (usu. air)
         'c' - speed of sound in material
+
+    Returns
+    -------
+    prad: ComplexSignal of shape (..., N)
+        The complex radiated pressure in the frequency domain.
     """
-    # handle depacking of the piston acoustic parameters
+    # Handle depacking of the piston-in-baffle approximation's acoustic parameters
     default_piston_params = {
         'r': 100.0, 'theta': 0.0, 'a': 1.0, 'rho': 0.001225, 'c': 343*100
     }
@@ -282,14 +298,14 @@ def prad_piston(q, f=None, df=1.0, axis=-1, piston_params=None):
     rho = piston_params['rho']
     c = piston_params['c']
 
-    # compute the frequencies if not provided
-    # this assumes `y` is a one-sided fourier representation and `y[0]`
+    # Compute the frequency bins if not provided
+    # This assumes `q` is a one-sided fourier representation and `q[0]`
     # corresponds to a frequency of 0.0 rad/s
     if f is None:
-        f_shape = [1]*y.ndim
-        f_shape[axis] = y.shape[axis]
+        f_shape = [1]*q.ndim
+        f_shape[axis] = q.shape[axis]
         f = np.zeros(f_shape)
-        f[:] = df*np.arange(y.shape[axis])
+        f[:] = df*np.arange(q.shape[axis])
 
     # apply the piston-in-infinite-baffle formula to determine radiated pressure
     # k is the wave number
