@@ -1,40 +1,73 @@
 """
-This module contains functions to compute frequency domain quantities of a signal
+This module contains functionality to compute frequency related quantities of a signal
 """
+
+from typing import Optional, Mapping, Any, Tuple
+from numpy.typing import NDArray
+
 import numpy as np
 from numpy import fft
 from scipy import signal
-import scipy.interpolate as interpolate
 
-def estimate_fundamental_mode(y, dt: float=1, flb: float=0, fub: float=np.inf, axis: int=-1):
+RealSignal = NDArray[float]
+OptAxis = Optional[int]
+
+FundamentalModeInfo = Tuple[float, float, float, float, Mapping[str, Any]]
+
+def fundamental_mode_from_rfft(
+        y: RealSignal, dt: Optional[float]=1.0,
+        axis: OptAxis=-1,
+        freq_lb: Optional[float]=0, freq_ub: Optional[float]=np.inf
+    ) -> FundamentalModeInfo:
     """
     Return information about the fundamental mode of a signal
 
+    The fundamental mode is found based on the highest peak in a DFT.
+
+    Parameters
+    ----------
+    y: RealSignal of shape (..., N)
+        Time domain signal
+    axis: OptAxis
+        Axis to compute PSD along
+    freq_lb, freq_ub: float
+        Lower and upper bounds for the fundamental frequency estimate
+
     Returns
     -------
-    f0 : float
+    freq : float
         Fundamental frequency estimate
-    phi0 : float
-        Phase of fundamental mode
+    df : float
+        The uncertainty in the fundamental frequency estimate (the size of a
+        frequency bin from the DFT)
+    phase : float
+        Phase of fundamental mode in radians
+    dphase : float
+        The uncertainty in the phase estimate (currently neglected to be zero)
+        TODO: This could be based on the phase difference between the DFT bin
+        boundaries
+    info : Mapping[str, Any]
     """
-    # Remove the mean component of y
-    y_ = y - np.mean(y, axis=axis, keepdims=True)
+    # Remove the mean component of `y`; `y_mf` stands for mean-free
+    y_mf = y - np.mean(y, axis=axis, keepdims=True)
 
-    # Compute the DFT and frequency components
-    N = y_.shape[axis]
-    dfty = fft.rfft(y_, N, axis=axis)
-    f = fft.rfftfreq(N, d=dt)
-    df = f[1] - f[0]
+    # Compute the DFT, frequency bins, and frequency spacing
+    N = y_mf.shape[axis]
+    dfty = fft.rfft(y_mf, N, axis=axis)
+    freq = fft.rfftfreq(N, d=dt)
+    df = freq[1] - freq[0]
 
-     # Offset `f`'s shape so that it broadcasts with `dfty`
+    # Reshape `freq` so that it broadcasts with `dfty`
+    # TODO: You can probably account for the `axis` argument with a decorator
+    # that permutes axes such that the desired axis is moved to the last axis/dim
     if axis < 0:
         noffset = -1 - axis
     else:
         noffset = y.ndim - axis - 1
-    _idx_inrange = np.logical_and(f>flb, f<fub)
+    _idx_inrange = np.logical_and(freq>freq_lb, freq<freq_ub)
     idx_inrange = (Ellipsis,) + (_idx_inrange,) + (slice(None),)*noffset
 
-    f = f[_idx_inrange]
+    freq = freq[_idx_inrange]
     dfty = dfty[idx_inrange]
 
     _idx_f0 = np.argmax(np.abs(dfty), axis=axis)
@@ -42,29 +75,59 @@ def estimate_fundamental_mode(y, dt: float=1, flb: float=0, fub: float=np.inf, a
 
     info = {}
     dphase = 0
-    return f[_idx_f0], np.angle(dfty[idx_f0]), df, dphase, info
+    return freq[_idx_f0], df, np.angle(dfty[idx_f0]), dphase, info
 
-def estimate_fundamental_mode_from_peaks(y, dt: float=1, **find_peaks_kwargs):
-    peaks, peak_properties = signal.find_peaks(y, **find_peaks_kwargs)
+def fundamental_mode_from_peaks(
+        y: RealSignal, dt: Optional[float]=1.0,
+        freq_lb: Optional[float]=0, freq_ub: Optional[float]=np.inf,
+        **find_peaks_kwargs
+    ) -> FundamentalModeInfo:
+    """
+    Return information about the fundamental mode of a signal
 
-    periods = dt*(peaks[1:]-peaks[:-1])
-    period = np.mean(periods)
+    The fundamental mode is found based on measuring time intervals between
+    signal peaks.
 
-    phases = dt*peaks - period*np.arange(peaks.size)
-    phase = np.mean(phases)
-    dphase = 3*np.std(phases)
+    Parameters
+    ----------
+    y: RealSignal of shape (N,)
+        Time domain signal
+    freq_lb, freq_ub: float
+        Lower and upper bounds for the fundamental frequency estimate
+
+    Returns
+    -------
+    freq : float
+        Fundamental frequency estimate
+    phi : float
+        Phase of fundamental mode in radians
+    df : float
+        The uncertainty in the fundamental frequency estimate (the size of a
+        frequency bin from the DFT)
+    info : Mapping[str, Any]
+    """
+
+    idx_peaks, peak_properties = signal.find_peaks(y, **find_peaks_kwargs)
+
+    periods = dt*(idx_peaks[1:]-idx_peaks[:-1])
+    mean_period = np.mean(periods)
+
+    phases = dt*idx_peaks - mean_period*np.arange(idx_peaks.size)
+    mean_phase = np.mean(phases)
+    stdev_phase = np.std(phases)
 
     freqs = 1/periods
-    freq = np.mean(freqs)
-    dfreq = np.std(freqs)
+    freqs = freqs[np.logical_and(freqs>freq_lb, freqs<freq_ub)]
+    mean_freq = np.mean(freqs)
+    stdev_freq = np.std(freqs)
 
     info = {
-        'peaks': peaks,
+        'peaks': idx_peaks,
         'peak_properties': peak_properties
     }
-    return freq, dfreq, phase, dphase, info
+    return mean_freq, stdev_freq, mean_phase, stdev_phase, info
 
-def estimate_periodic_statistics(y, n_period):
+def periodic_stats(y, n_period):
     """
     Return statistics on the periodic behaviour of a signal
 
