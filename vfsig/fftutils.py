@@ -67,7 +67,7 @@ def power_from_fft(
 def psd_from_rfft(
         u: ComplexSignal, v: ComplexSignal,
         axis: OptAxis=-1,
-        n_time: Optional[int]=None
+        n: Optional[int]=None
     ) -> RealSignal:
     """
     Return power spectral density (PSD) from one-sided Fourier domain signals
@@ -84,7 +84,7 @@ def psd_from_rfft(
     u, v : ComplexSignal of shape (..., N)
         Frequency domain signals as obtained from `np.fft.rfft`
     n : Optional[int]
-        The number of points in the original time-domain signal. If not
+        The number of points in the original untransformed signal. If not
         provided, the function assumes `n` is even which may lead to aliasing.
         See `np.fft.rfft` and `np.fft.rifft` for details on why you have to
         supply `n`.
@@ -96,8 +96,8 @@ def psd_from_rfft(
     psd: RealSignal of shape (..., N)
         The power spectral density
     """
-    if n_time is None:
-        n_time = 2*u.shape[axis]
+    if n is None:
+        n = 2*u.shape[axis]
 
     NDIM = max(u.ndim, v.ndim)
     # Get a purely positive axis by accounting for negative `axis`
@@ -111,18 +111,18 @@ def psd_from_rfft(
     shape = (1,)*AXIS + (N,) + (1,)*(NDIM-AXIS-1)
     scale = np.ones(shape)
 
-    if n_time//2 == 0:
+    if n//2 == 0:
         idx = (0,)*AXIS + (slice(1, None),) + (0,)*(NDIM-AXIS-1)
     else:
         idx = (0,)*AXIS + (slice(1, -1),) + (0,)*(NDIM-AXIS-1)
     scale[idx] = 2.0
 
-    return 1/n_time * np.real(scale*np.conjugate(u)*v)
+    return 1/n * np.real(scale*np.conjugate(u)*v)
 
 def power_from_rfft(
         u: ComplexSignal, v: ComplexSignal,
         axis: OptAxis=-1,
-        n_time: Optional[int]=None
+        n: Optional[int]=None
     ) -> RealSignal:
     """
     Return signal power from one-sided Fourier domain signals
@@ -135,7 +135,7 @@ def power_from_rfft(
     u, v : ComplexSignal of shape (..., N)
         Frequency domain signals as obtained from `np.fft.rfft`
     n : int
-        The number of points in the original time-domain signal. If not
+        The number of points in the original untransformed signal. If not
         provided, the function assumes `n` is even which may lead to aliasing.
         See `np.fft.rfft` and `np.fft.rifft` for details on why you have to
         supply `n`.
@@ -147,4 +147,4 @@ def power_from_rfft(
     power: RealSignal of shape (..., )
         The signal power
     """
-    return np.sum(psd_from_rfft(u, v, axis=axis, n_time=n_time), axis=axis)
+    return np.sum(psd_from_rfft(u, v, axis=axis, n=n), axis=axis)

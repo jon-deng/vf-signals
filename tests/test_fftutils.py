@@ -76,6 +76,6 @@ def test_power_from_fft(ut, vt, ufft, vfft, axis):
 def test_power_from_rfft(ut, vt, urfft, vrfft, axis):
     assert np.isclose(
         np.sum(np.conj(ut)*vt, axis=axis),
-        fftutils.power_from_rfft(urfft, vrfft, axis=axis, n_time=ut.shape[axis])
+        fftutils.power_from_rfft(urfft, vrfft, axis=axis, n=ut.shape[axis])
     )
 
