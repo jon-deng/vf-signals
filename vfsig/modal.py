@@ -5,6 +5,8 @@ This module contains functionality to compute frequency related quantities of a 
 from typing import Optional, Mapping, Any, Tuple
 from numpy.typing import NDArray
 
+import warnings
+
 import numpy as np
 from numpy import fft
 from scipy import signal
@@ -109,17 +111,24 @@ def fundamental_mode_from_peaks(
 
     idx_peaks, peak_properties = signal.find_peaks(y, **find_peaks_kwargs)
 
-    periods = dt*(idx_peaks[1:]-idx_peaks[:-1])
-    mean_period = np.mean(periods)
+    if len(idx_peaks) >= 2:
+        periods = dt*(idx_peaks[1:]-idx_peaks[:-1])
+        mean_period = np.mean(periods)
 
-    phases = dt*idx_peaks - mean_period*np.arange(idx_peaks.size)
-    mean_phase = np.mean(phases)
-    stdev_phase = np.std(phases)
+        phases = dt*idx_peaks - mean_period*np.arange(idx_peaks.size)
+        mean_phase = np.mean(phases)
+        stdev_phase = np.std(phases)
 
-    freqs = 1/periods
-    freqs = freqs[np.logical_and(freqs>freq_lb, freqs<freq_ub)]
-    mean_freq = np.mean(freqs)
-    stdev_freq = np.std(freqs)
+        freqs = 1/periods
+        freqs = freqs[np.logical_and(freqs>freq_lb, freqs<freq_ub)]
+        mean_freq = np.mean(freqs)
+        stdev_freq = np.std(freqs)
+    else:
+        mean_freq, stdev_freq, mean_phase, stdev_phase = 4*(np.NaN,)
+        if len(idx_peaks) == 1:
+            warnings.warn("Found a single peak", RuntimeWarning)
+        elif len(idx_peaks) == 0:
+            warnings.warn("Found no peaks", RuntimeWarning)
 
     info = {
         'peaks': idx_peaks,
