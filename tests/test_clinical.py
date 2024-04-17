@@ -8,32 +8,33 @@ import numpy as np
 
 from vfsig import clinical
 
-@pytest.fixture(
-    params=[
-        (5,), (5, 4), (6, 2, 100)
-    ]
-)
+
+@pytest.fixture(params=[(5,), (5, 4), (6, 2, 100)])
 def signal_shape(request):
     return request.param
+
 
 @pytest.fixture()
 def time(signal_shape):
     return np.linspace(0, 1, signal_shape[-1])
 
+
 @pytest.fixture()
 def time_intercept(time, signal_shape):
     tini, tfin = time[..., 0], time[..., -1]
     u = np.random.rand(*(signal_shape[:-1] + (1,)))
-    return u/1*(tfin-tini) + tini
+    return u / 1 * (tfin - tini) + tini
+
 
 @pytest.fixture()
 def y_slope():
-    return 2*(np.random.rand() - 0.5)
+    return 2 * (np.random.rand() - 0.5)
+
 
 @pytest.fixture()
 def y_linear(signal_shape, time, time_intercept, y_slope):
     y = np.zeros(signal_shape)
-    y[:] = y_slope*(time-time_intercept)
+    y[:] = y_slope * (time - time_intercept)
     return y
 
 
@@ -44,12 +45,14 @@ def y_linear(signal_shape, time, time_intercept, y_slope):
 def is_closed(signal_shape):
     return np.random.randint(0, 2, size=signal_shape, dtype=bool)
 
+
 @pytest.fixture()
 def y_closed(is_closed):
     y = np.zeros(is_closed.shape)
     y[is_closed] = -1.0
     y[np.logical_not(is_closed)] = 1.0
     return y
+
 
 class TestStateIndicatorFunctions:
 
@@ -64,9 +67,7 @@ class TestStateIndicatorFunctions:
 
     @pytest.fixture()
     def y_is_closing(self, y_linear, y_slope):
-        """
-
-        """
+        """ """
         is_open = clinical.is_open(y_linear)
         if y_slope < 0:
             return is_open
@@ -78,9 +79,7 @@ class TestStateIndicatorFunctions:
 
     @pytest.fixture()
     def y_is_opening(self, y_linear, y_slope):
-        """
-
-        """
+        """ """
         is_open = clinical.is_open(y_linear)
         if y_slope > 0:
             return is_open
@@ -89,6 +88,7 @@ class TestStateIndicatorFunctions:
 
     def test_is_opening(self, y_linear, time, y_is_opening):
         assert np.all(clinical.is_opening(y_linear, time, closed_ub=0) == y_is_opening)
+
 
 class TestScalarMeasures:
     """
@@ -109,13 +109,13 @@ class TestScalarMeasures:
         not_closed_interval = np.logical_not(is_closed_interval)
 
         # Multiply by the ones array to make sure `dt` has the right broadcasted shape
-        dt = np.ones(is_closed_interval.shape)*(time[..., 1:] - time[..., :-1])
+        dt = np.ones(is_closed_interval.shape) * (time[..., 1:] - time[..., :-1])
         dt[np.logical_and(not_closed_interval, not_transition_interval)] = 0
-        dt[is_transition_interval] = 0.5*dt[is_transition_interval]
+        dt[is_transition_interval] = 0.5 * dt[is_transition_interval]
 
         t_total = time[..., -1] - time[..., 0]
         t_closed = np.sum(dt, axis=-1)
-        return t_closed/t_total
+        return t_closed / t_total
 
     @pytest.fixture()
     def y_closed(self, is_closed, time):

@@ -7,6 +7,7 @@ Citations
 ---------
 E. Holmberg, R. Hillman, and J. Perkell -- Glottal airflow and transglottal air pressure measurements for male and female speakers in soft, normal, and loud voice -- 1998 -- JASA
 """
+
 from typing import Optional, Mapping, Union, Any
 from numpy.typing import NDArray
 import numpy as np
@@ -23,16 +24,18 @@ OptAxis = Optional[int]
 
 #### Time domain clinical measures
 
+
 ## Decorator for adding `axis` and optional `time` and `dt` kwargs
 def _add_optional_kwargs(func):
     def dec_func(
-            y: RealArray,
-            t: TimeArray=None, dt: Optional[float]=1.0,
-            axis: OptAxis=-1,
-            closed_ub: Optional[float]=0.0
-        ) -> Union[RealArray, ComplexArray, BoolArray]:
+        y: RealArray,
+        t: TimeArray = None,
+        dt: Optional[float] = 1.0,
+        axis: OptAxis = -1,
+        closed_ub: Optional[float] = 0.0,
+    ) -> Union[RealArray, ComplexArray, BoolArray]:
         if t is None:
-            time = dt*np.arange(y.shape[-1])
+            time = dt * np.arange(y.shape[-1])
         else:
             time = t
 
@@ -42,10 +45,12 @@ def _add_optional_kwargs(func):
 
     return dec_func
 
+
 ## State indicator functions
 # These functions return a boolean array indicating whether the VFs
 # are or aren't in some state
 # (open, closed, closing, opening)
+
 
 def _add_state_indicator_docstring(signal_function):
     """
@@ -79,53 +84,51 @@ def _add_state_indicator_docstring(signal_function):
     signal_function.__doc__ = signal_function.__doc__ + add_docstring
     return signal_function
 
+
 @_add_optional_kwargs
 @_add_state_indicator_docstring
-def is_closed(y: RealArray, t: TimeArray, closed_ub: ClosedUB=0) -> BoolArray:
+def is_closed(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> BoolArray:
     """
     Return a boolean array indicating if VFs are closed
     """
     return y < closed_ub
 
-@_add_optional_kwargs
-@_add_state_indicator_docstring
-def is_open(y: RealArray, t: TimeArray, closed_ub: ClosedUB=0) -> BoolArray:
-    """
-    Return a boolean array indicating if VFs are opening
-    """
-    return np.logical_not(
-        is_closed(y, t=t, closed_ub=closed_ub)
-    )
 
 @_add_optional_kwargs
 @_add_state_indicator_docstring
-def is_closing(y: RealArray, t: TimeArray, closed_ub: ClosedUB=0) -> BoolArray:
+def is_open(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> BoolArray:
+    """
+    Return a boolean array indicating if VFs are opening
+    """
+    return np.logical_not(is_closed(y, t=t, closed_ub=closed_ub))
+
+
+@_add_optional_kwargs
+@_add_state_indicator_docstring
+def is_closing(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> BoolArray:
     """
     Return a boolean array indicating if VFs are closing
     """
     axis = -1
     y_prime = np.gradient(y, t, axis=axis)
-    return np.logical_and(
-        is_open(y, t=t, closed_ub=closed_ub),
-        y_prime < 0
-    )
+    return np.logical_and(is_open(y, t=t, closed_ub=closed_ub), y_prime < 0)
+
 
 @_add_optional_kwargs
 @_add_state_indicator_docstring
-def is_opening(y: RealArray, t: TimeArray, closed_ub: ClosedUB=0) -> BoolArray:
+def is_opening(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> BoolArray:
     """
     Return a boolean array indicating if VFs are opening
     """
     axis = -1
     y_prime = np.gradient(y, t, axis=axis)
-    return np.logical_and(
-        is_open(y, t=t, closed_ub=closed_ub),
-        y_prime >= 0
-    )
+    return np.logical_and(is_open(y, t=t, closed_ub=closed_ub), y_prime >= 0)
+
 
 ## Return scalar summaries of the signal
 def _duration(t: TimeArray) -> float:
-    return t[..., -1]-t[..., 0]
+    return t[..., -1] - t[..., 0]
+
 
 def _add_measure_docstring(measure_function):
     """
@@ -161,9 +164,10 @@ def _add_measure_docstring(measure_function):
     measure_function.__doc__ = measure_function.__doc__ + add_docstring
     return measure_function
 
+
 @_add_optional_kwargs
 @_add_measure_docstring
-def closed_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB=0) -> RealArray:
+def closed_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
     """
     Return the closed ratio
 
@@ -172,21 +176,23 @@ def closed_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB=0) -> RealArray
     ind_closed = np.array(is_closed(y, t, closed_ub), dtype=float)
     closed_duration = np.trapz(ind_closed, x=t, axis=-1)
     duration = _duration(t)
-    return closed_duration/duration
+    return closed_duration / duration
+
 
 @_add_optional_kwargs
 @_add_measure_docstring
-def open_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB=0) -> RealArray:
+def open_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
     """
     Return the open ratio
 
     This is the ratio of time spent open to total time
     """
-    return 1 - closed_ratio(y, t , closed_ub=closed_ub)
+    return 1 - closed_ratio(y, t, closed_ub=closed_ub)
+
 
 @_add_optional_kwargs
 @_add_measure_docstring
-def closing_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB=0) -> RealArray:
+def closing_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
     """
     Return the closing ratio
 
@@ -195,11 +201,12 @@ def closing_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB=0) -> RealArra
     ind_closing = np.array(is_closing(y, t, closed_ub), dtype=float)
     closing_duration = np.trapz(ind_closing, x=t, axis=-1)
     duration = _duration(t)
-    return closing_duration/duration
+    return closing_duration / duration
+
 
 @_add_optional_kwargs
 @_add_measure_docstring
-def opening_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB=0) -> RealArray:
+def opening_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
     """
     Return the opening ratio
 
@@ -208,21 +215,25 @@ def opening_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB=0) -> RealArra
     ind_opening = np.array(is_opening(y, t, closed_ub), dtype=float)
     opening_duration = np.trapz(ind_opening, x=t, axis=-1)
     duration = _duration(t)
-    return opening_duration/duration
+    return opening_duration / duration
+
 
 @_add_optional_kwargs
 @_add_measure_docstring
-def speed_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB=0) -> RealArray:
+def speed_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
     """
     Return the speed ratio
 
     This is the ratio of opening to closing times
     """
-    return opening_ratio(y, t, closed_ub=closed_ub) / closing_ratio(y, t, closed_ub=closed_ub)
+    return opening_ratio(y, t, closed_ub=closed_ub) / closing_ratio(
+        y, t, closed_ub=closed_ub
+    )
+
 
 @_add_optional_kwargs
 @_add_measure_docstring
-def mfdr(y: RealArray, t: TimeArray, closed_ub: ClosedUB=0) -> RealArray:
+def mfdr(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
     """
     Return the maximum flow declination rate (MFDR)
     """
@@ -230,9 +241,10 @@ def mfdr(y: RealArray, t: TimeArray, closed_ub: ClosedUB=0) -> RealArray:
     yp = np.gradient(y, t, axis=-1)
     return np.min(yp[ind_open])
 
+
 @_add_optional_kwargs
 @_add_measure_docstring
-def ac_flow(y: RealArray, t: TimeArray, closed_ub: ClosedUB=0) -> RealArray:
+def ac_flow(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
     """
     Return the AC flow
 
@@ -240,26 +252,29 @@ def ac_flow(y: RealArray, t: TimeArray, closed_ub: ClosedUB=0) -> RealArray:
     """
     return np.max(y, axis=-1) - np.min(y, axis=-1)
 
+
 @_add_optional_kwargs
 @_add_measure_docstring
-def acdc(y: RealArray, t: TimeArray, closed_ub: ClosedUB=0) -> RealArray:
+def acdc(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
     """
     See Holmberg et al. for the definition
     """
     y_ac = y - y.min(axis=-1, keepdims=True)
 
     T = _duration(t)
-    y_ac_rms = np.sqrt(np.trapz(t, y_ac**2, axis=-1)/T)
-    y_ac_mean = np.trapz(t, y_ac, axis=-1)/T
-    return y_ac_rms/y_ac_mean
+    y_ac_rms = np.sqrt(np.trapz(t, y_ac**2, axis=-1) / T)
+    y_ac_mean = np.trapz(t, y_ac, axis=-1) / T
+    return y_ac_rms / y_ac_mean
+
 
 @_add_optional_kwargs
 @_add_measure_docstring
-def rms_time(y: RealArray, t: TimeArray, closed_ub: ClosedUB=0) -> RealArray:
+def rms_time(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
     """
     Return the RMS of a time-domain signal
     """
     return np.sqrt(np.mean(y**2, axis=-1))
+
 
 #### Frequency domain clinical measures
 
@@ -267,12 +282,14 @@ def rms_time(y: RealArray, t: TimeArray, closed_ub: ClosedUB=0) -> RealArray:
 # TODO: You should probably use a decorator (similar for time domain functions)
 # to handle optional frequency and frequency step arguments
 
+
 def prad_piston(
-        q: ComplexArray,
-        f: Optional[RealArray]=None, df: Optional[float]=1.0,
-        axis: OptAxis=-1,
-        piston_params: Optional[Mapping[str, float]]=None
-    ) -> ComplexArray:
+    q: ComplexArray,
+    f: Optional[RealArray] = None,
+    df: Optional[float] = 1.0,
+    axis: OptAxis = -1,
+    piston_params: Optional[Mapping[str, float]] = None,
+) -> ComplexArray:
     """
     Return the complex pressure amplitude from a flow source in the frequency domain
 
@@ -308,7 +325,11 @@ def prad_piston(
     """
     # Handle depacking of the piston-in-baffle approximation's acoustic parameters
     default_piston_params = {
-        'r': 100.0, 'theta': 0.0, 'a': 1.0, 'rho': 0.001225, 'c': 343*100
+        'r': 100.0,
+        'theta': 0.0,
+        'a': 1.0,
+        'rho': 0.001225,
+        'c': 343 * 100,
     }
     if piston_params is None:
         piston_params = {}
@@ -325,25 +346,40 @@ def prad_piston(
     # This assumes `q` is a one-sided fourier representation and `q[0]`
     # corresponds to a frequency of 0.0 rad/s
     if f is None:
-        f_shape = [1]*q.ndim
+        f_shape = [1] * q.ndim
         f_shape[axis] = q.shape[axis]
         f = np.zeros(f_shape)
-        f[:] = df*np.arange(q.shape[axis])
+        f[:] = df * np.arange(q.shape[axis])
 
     # apply the piston-in-infinite-baffle formula to determine radiated pressure
     # k is the wave number
-    k = f/c
-    zc = rho*c
+    k = f / c
+    zc = rho * c
 
     # Note the below formula are missing factors of 'a' relative to eq. (7.4.17)
     # because this formula uses flow rate, instead of piston velocity.
     if theta == 0:
-        return 1j/2 * zc * q/np.pi * 1/r * k * np.exp(-1j*k*r)
+        return 1j / 2 * zc * q / np.pi * 1 / r * k * np.exp(-1j * k * r)
     else:
-        y = k*a*np.sin(theta)
-        return 1j/2 * zc * q/np.pi * 1/r * k * 2*sp.special.jv(1, y)/y * np.exp(-1j*k*r)
+        y = k * a * np.sin(theta)
+        return (
+            1j
+            / 2
+            * zc
+            * q
+            / np.pi
+            * 1
+            / r
+            * k
+            * 2
+            * sp.special.jv(1, y)
+            / y
+            * np.exp(-1j * k * r)
+        )
+
 
 def rms_freq(y, f=None, df=None, axis=-1):
     return np.sqrt(np.mean(y**2, axis=axis))
+
 
 # def spl(y, t=None, dt=None, axis=-1):

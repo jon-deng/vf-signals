@@ -11,10 +11,10 @@ ComplexSignal = NDArray[complex]
 RealSignal = NDArray[float]
 OptAxis = Optional[int]
 
+
 def psd_from_fft(
-        u: ComplexSignal, v: ComplexSignal,
-        axis: OptAxis=-1
-    ) -> ComplexSignal:
+    u: ComplexSignal, v: ComplexSignal, axis: OptAxis = -1
+) -> ComplexSignal:
     """
     Return power spectral density (PSD) from Fourier domain signals
 
@@ -38,12 +38,12 @@ def psd_from_fft(
         The power spectral density
     """
     N = u.shape[axis]
-    return 1/N * np.conjugate(u)*v
+    return 1 / N * np.conjugate(u) * v
+
 
 def power_from_fft(
-        u: ComplexSignal, v: ComplexSignal,
-        axis: OptAxis=-1
-    ) -> ComplexSignal:
+    u: ComplexSignal, v: ComplexSignal, axis: OptAxis = -1
+) -> ComplexSignal:
     """
     Return signal power from Fourier domain signals
 
@@ -64,11 +64,10 @@ def power_from_fft(
     """
     return np.sum(psd_from_fft(u, v, axis), axis=axis)
 
+
 def psd_from_rfft(
-        u: ComplexSignal, v: ComplexSignal,
-        axis: OptAxis=-1,
-        n: Optional[int]=None
-    ) -> RealSignal:
+    u: ComplexSignal, v: ComplexSignal, axis: OptAxis = -1, n: Optional[int] = None
+) -> RealSignal:
     """
     Return power spectral density (PSD) from one-sided Fourier domain signals
 
@@ -97,33 +96,32 @@ def psd_from_rfft(
         The power spectral density
     """
     if n is None:
-        n = 2*u.shape[axis]
+        n = 2 * u.shape[axis]
 
     NDIM = max(u.ndim, v.ndim)
     # Get a purely positive axis by accounting for negative `axis`
     if axis < 0:
-        AXIS = NDIM+axis
+        AXIS = NDIM + axis
     else:
         AXIS = axis
     N = u.shape[AXIS]
 
     # Create a scale array to account for dropped symmetric components in `np.fft.rfft`
-    shape = (1,)*AXIS + (N,) + (1,)*(NDIM-AXIS-1)
+    shape = (1,) * AXIS + (N,) + (1,) * (NDIM - AXIS - 1)
     scale = np.ones(shape)
 
-    if n//2 == 0:
-        idx = (0,)*AXIS + (slice(1, None),) + (0,)*(NDIM-AXIS-1)
+    if n // 2 == 0:
+        idx = (0,) * AXIS + (slice(1, None),) + (0,) * (NDIM - AXIS - 1)
     else:
-        idx = (0,)*AXIS + (slice(1, -1),) + (0,)*(NDIM-AXIS-1)
+        idx = (0,) * AXIS + (slice(1, -1),) + (0,) * (NDIM - AXIS - 1)
     scale[idx] = 2.0
 
-    return 1/n * np.real(scale*np.conjugate(u)*v)
+    return 1 / n * np.real(scale * np.conjugate(u) * v)
+
 
 def power_from_rfft(
-        u: ComplexSignal, v: ComplexSignal,
-        axis: OptAxis=-1,
-        n: Optional[int]=None
-    ) -> RealSignal:
+    u: ComplexSignal, v: ComplexSignal, axis: OptAxis = -1, n: Optional[int] = None
+) -> RealSignal:
     """
     Return signal power from one-sided Fourier domain signals
 
