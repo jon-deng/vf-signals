@@ -173,7 +173,7 @@ def closed_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArr
 
     This is the ratio of time spent closed to total time
     """
-    ind_closed = np.array(is_closed(y, t, closed_ub), dtype=float)
+    ind_closed = np.array(is_closed(y, t, closed_ub=closed_ub), dtype=float)
     closed_duration = np.trapz(ind_closed, x=t, axis=-1)
     duration = _duration(t)
     return closed_duration / duration
