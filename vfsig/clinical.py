@@ -1,5 +1,5 @@
 """
-This module contains functionality for calculating common clinical measures of speech signals
+Functions for computing common clinical measures of speech signals
 
 The `..._ratio` function definitions come from the paper (Holmberg et al., 1998)
 
@@ -20,8 +20,17 @@ BoolArray = np.ndarray[bool]
 
 #### Time domain clinical measures
 
+# All time domain clinical measures have the basic function signature
+# `def f(y: RealArray, t: RealArray, **kwargs)`
+# where `y` is the time-varying signal, `t` are the corresponding times and `kwargs`
+# are any specific keyword arguments.
+#
+# The basic signature is augmented to
+# `def g(y: RealArray, t: Union[RealArray, float], axis: Optional[int], **kwargs)`
+# by the decorator `_add_optional_kwargs`
 
 ## Decorator for adding `axis` and optional `time` and `dt` kwargs
+# This decorator modifies the
 def _add_optional_kwargs(func):
     def dec_func(
         y: RealArray,
@@ -43,10 +52,10 @@ def _add_optional_kwargs(func):
 
 
 ## State indicator functions
-# These functions return a boolean array indicating whether the VFs
-# are or aren't in some state
-# (open, closed, closing, opening)
-
+# These time domain functions return a boolean array indicating whether the VFs
+# are/aren't in some state (open, closed, closing, opening)
+# The basic signature is
+# `def f(y: RealArray, t: RealArray, closed_ub: Optional[float]=0)`
 
 def _add_state_indicator_docstring(signal_function):
     """
@@ -122,6 +131,10 @@ def is_opening(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> Bo
 
 
 ## Return scalar summaries of the signal
+# These time domain functions return reduce a time signal into a scalar measure
+# The basic signature is
+# `def f(y: RealArray, t: RealArray, **kwargs)`
+
 def _duration(t: RealArray) -> float:
     return t[..., -1] - t[..., 0]
 
