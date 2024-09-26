@@ -8,7 +8,7 @@ Citations
 E. Holmberg, R. Hillman, and J. Perkell -- Glottal airflow and transglottal air pressure measurements for male and female speakers in soft, normal, and loud voice -- 1998 -- JASA
 """
 
-from typing import Optional, Mapping, Union
+from typing import Optional, Mapping, Union, Callable
 # from numpy.typing import
 import numpy as np
 import scipy as sp
@@ -37,7 +37,7 @@ def _add_optional_kwargs(func):
         t: RealArray = None,
         dt: Optional[float] = 1.0,
         axis: Optional[int] = -1,
-        closed_ub: Optional[float] = 0.0,
+        **kwargs
     ) -> Union[RealArray, ComplexArray, BoolArray]:
         if t is None:
             time = dt * np.arange(y.shape[-1])
@@ -46,7 +46,9 @@ def _add_optional_kwargs(func):
 
         y = np.moveaxis(y, axis, -1)
         time = np.moveaxis(time, axis, -1)
-        return func(y, time, closed_ub=closed_ub)
+        return func(y, time, **kwargs)
+
+    dec_func.__doc__ = func.__doc__
 
     return dec_func
 
@@ -57,62 +59,93 @@ def _add_optional_kwargs(func):
 # The basic signature is
 # `def f(y: RealArray, t: RealArray, closed_ub: Optional[float]=0)`
 
-def _add_state_indicator_docstring(signal_function):
+def _add_standard_parameters_to_docstring(signal_function: Callable):
     """
-    Add the 'Parameters' and 'Returns' sections to a function docstring
+    Add the 'Parameters' sections to a indicator function docstring
     """
 
-    add_docstring = """
+    doc_standard_parameters = """y : RealArray of shape (..., N)
+        The time domain signal
+    t : Optional[RealArray] of shape (..., N)
+        Sample times
 
-    Parameters
-    ----------
-    y : RealArray of shape (..., N)
-        A signal of glottal width or glottal flow
-    t : RealArray of shape (..., N)
-        Time instances of the glottal signal. This should have a shape
-        broadcastable to `y`
+        This should have a shape broadcastable to `y`
     dt : Optional[float]
-        The uniform time spacing between signal samples. If `t` is
-        supplied, values of `dt` will be ignored
-    closed_ub : float
-        The largest value of `y` for which the VFs are considered closed
-        (i.e. where `y < closed_ub`, the VFs are assumed to be closed)
-    axis: Optional[int]
-        The axis to compute along. Indices along this axis are
-        considered to correspond to difference time instances
+        An optional uniform sampling time
 
-    Returns
-    -------
-    BoolArray
-        Boolean array indicating whether the state is satisfied or not
-    """
-    signal_function.__doc__ = signal_function.__doc__ + add_docstring
+        If `t` is supplied  `dt` will be ignored.
+        If `dt` is supplied and `t=None` sample times are assumed to be evenly spaced at
+        `dt`.
+    axis: Optional[int]
+        The time axis for both `y` and `t`"""
+    signal_function.__doc__ = signal_function.__doc__.format(
+        doc_standard_parameters
+    )
     return signal_function
 
 
 @_add_optional_kwargs
-@_add_state_indicator_docstring
+@_add_standard_parameters_to_docstring
 def is_closed(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> BoolArray:
     """
     Return a boolean array indicating if VFs are closed
+
+    Parameters
+    ----------
+    {}
+    closed_ub : Optional[float]
+        The upper bound of `y` where the glottis is considered closed
+
+        Closure is considered to happen when `y < closed_ub`
+
+    Returns
+    -------
+    BoolArray
+        Indicator if glottis is closed
     """
     return y < closed_ub
 
 
 @_add_optional_kwargs
-@_add_state_indicator_docstring
+@_add_standard_parameters_to_docstring
 def is_open(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> BoolArray:
     """
     Return a boolean array indicating if VFs are opening
+
+    Parameters
+    ----------
+    {}
+    closed_ub : Optional[float]
+        The upper bound of `y` where the glottis is considered closed
+
+        Closure is considered to happen when `y < closed_ub`
+
+    Returns
+    -------
+    BoolArray
+        Indicator if glottis is open
     """
     return np.logical_not(is_closed(y, t=t, closed_ub=closed_ub))
 
 
 @_add_optional_kwargs
-@_add_state_indicator_docstring
+@_add_standard_parameters_to_docstring
 def is_closing(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> BoolArray:
     """
     Return a boolean array indicating if VFs are closing
+
+    Parameters
+    ----------
+    {}
+    closed_ub : Optional[float]
+        The upper bound of `y` where the glottis is considered closed
+
+        Closure is considered to happen when `y < closed_ub`
+
+    Returns
+    -------
+    BoolArray
+        Indicator if glottis is closing
     """
     axis = -1
     y_prime = np.gradient(y, t, axis=axis)
@@ -120,10 +153,23 @@ def is_closing(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> Bo
 
 
 @_add_optional_kwargs
-@_add_state_indicator_docstring
+@_add_standard_parameters_to_docstring
 def is_opening(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> BoolArray:
     """
     Return a boolean array indicating if VFs are opening
+
+    Parameters
+    ----------
+    {}
+    closed_ub : Optional[float]
+        The upper bound of `y` where the glottis is considered closed
+
+        Closure is considered to happen when `y < closed_ub`
+
+    Returns
+    -------
+    BoolArray
+        Indicator if glottis is opening
     """
     axis = -1
     y_prime = np.gradient(y, t, axis=axis)
@@ -139,48 +185,26 @@ def _duration(t: RealArray) -> float:
     return t[..., -1] - t[..., 0]
 
 
-def _add_measure_docstring(measure_function):
-    """
-    Add the 'Parameters' and 'Returns' sections to a function docstring
-    """
-
-    add_docstring = """
-
-    Parameters
-    ----------
-    y : RealArray of shape (..., N)
-        A signal of glottal width or glottal flow
-    t : RealArray of shape (..., N)
-        Time instances of the glottal signal. This should have a shape
-        broadcastable to `y`
-    dt : Optional[float]
-        The uniform time spacing between signal samples. If `t` is
-        supplied, values of `dt` will be ignored
-    closed_ub : float
-        The largest value of `y` for which the VFs are considered closed
-        (i.e. where `y < closed_ub`, the VFs are assumed to be closed)
-    axis: Optional[int]
-        The axis to compute along. Indices along this axis are
-        considered to correspond to difference time instances
-
-    Returns
-    -------
-    RealArray of shape (...,)
-        An array containing the summary scalar.
-        This array is one dimension smaller than `y`.
-        If `y` has a single axis, for example, this returns a scalar
-    """
-    measure_function.__doc__ = measure_function.__doc__ + add_docstring
-    return measure_function
-
-
 @_add_optional_kwargs
-@_add_measure_docstring
+@_add_standard_parameters_to_docstring
 def closed_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     Return the closed ratio
 
     This is the ratio of time spent closed to total time
+
+    Parameters
+    ----------
+    {}
+    closed_ub : Optional[float]
+        The upper bound of `y` where the glottis is considered closed
+
+        Closure is considered to happen when `y < closed_ub`
+
+    Returns
+    -------
+    RealArray
+        The closed ratio
     """
     ind_closed = np.array(is_closed(y, t, closed_ub=closed_ub), dtype=float)
     closed_duration = np.trapz(ind_closed, x=t, axis=-1)
@@ -189,23 +213,49 @@ def closed_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> 
 
 
 @_add_optional_kwargs
-@_add_measure_docstring
+@_add_standard_parameters_to_docstring
 def open_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     Return the open ratio
 
     This is the ratio of time spent open to total time
+
+    Parameters
+    ----------
+    {}
+    closed_ub : Optional[float]
+        The upper bound of `y` where the glottis is considered closed
+
+        Closure is considered to happen when `y < closed_ub`
+
+    Returns
+    -------
+    RealArray
+        The open ratio
     """
     return 1 - closed_ratio(y, t, closed_ub=closed_ub)
 
 
 @_add_optional_kwargs
-@_add_measure_docstring
+@_add_standard_parameters_to_docstring
 def closing_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     Return the closing ratio
 
     This is the ratio of time spent closing to the total time
+
+    Parameters
+    ----------
+    {}
+    closed_ub : Optional[float]
+        The upper bound of `y` where the glottis is considered closed
+
+        Closure is considered to happen when `y < closed_ub`
+
+    Returns
+    -------
+    RealArray
+        The closing ratio
     """
     ind_closing = np.array(is_closing(y, t, closed_ub), dtype=float)
     closing_duration = np.trapz(ind_closing, x=t, axis=-1)
@@ -214,12 +264,25 @@ def closing_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) ->
 
 
 @_add_optional_kwargs
-@_add_measure_docstring
+@_add_standard_parameters_to_docstring
 def opening_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     Return the opening ratio
 
     This is the ratio of time spent opening to the total time
+
+    Parameters
+    ----------
+    {}
+    closed_ub : Optional[float]
+        The upper bound of `y` where the glottis is considered closed
+
+        Closure is considered to happen when `y < closed_ub`
+
+    Returns
+    -------
+    RealArray
+        The opening ratio
     """
     ind_opening = np.array(is_opening(y, t, closed_ub), dtype=float)
     opening_duration = np.trapz(ind_opening, x=t, axis=-1)
@@ -228,12 +291,25 @@ def opening_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) ->
 
 
 @_add_optional_kwargs
-@_add_measure_docstring
+@_add_standard_parameters_to_docstring
 def speed_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     Return the speed ratio
 
     This is the ratio of opening to closing times
+
+    Parameters
+    ----------
+    {}
+    closed_ub : Optional[float]
+        The upper bound of `y` where the glottis is considered closed
+
+        Closure is considered to happen when `y < closed_ub`
+
+    Returns
+    -------
+    RealArray
+        The speed ratio
     """
     return opening_ratio(y, t, closed_ub=closed_ub) / closing_ratio(
         y, t, closed_ub=closed_ub
@@ -241,10 +317,23 @@ def speed_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> R
 
 
 @_add_optional_kwargs
-@_add_measure_docstring
+@_add_standard_parameters_to_docstring
 def mfdr(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     Return the maximum flow declination rate (MFDR)
+
+    Parameters
+    ----------
+    {}
+    closed_ub : Optional[float]
+        The upper bound of `y` where the glottis is considered closed
+
+        Closure is considered to happen when `y < closed_ub`
+
+    Returns
+    -------
+    RealArray
+        The MFDR
     """
     ind_open = is_open(y, t, closed_ub)
     yp = np.gradient(y, t, axis=-1)
@@ -252,21 +341,39 @@ def mfdr(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArra
 
 
 @_add_optional_kwargs
-@_add_measure_docstring
-def ac_flow(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
+@_add_standard_parameters_to_docstring
+def ac_flow(y: RealArray, t: RealArray) -> RealArray:
     """
     Return the AC flow
 
     This is the amplitude from minimum to maximum of the signal
+
+    Parameters
+    ----------
+    {}
+
+    Returns
+    -------
+    RealArray
+        The AC flow
     """
     return np.max(y, axis=-1) - np.min(y, axis=-1)
 
 
 @_add_optional_kwargs
-@_add_measure_docstring
-def acdc(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
+@_add_standard_parameters_to_docstring
+def acdc(y: RealArray, t: RealArray) -> RealArray:
     """
     See Holmberg et al. for the definition
+
+    Parameters
+    ----------
+    {}
+
+    Returns
+    -------
+    RealArray
+        The acdc ratio
     """
     y_ac = y - y.min(axis=-1, keepdims=True)
 
@@ -277,10 +384,19 @@ def acdc(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArra
 
 
 @_add_optional_kwargs
-@_add_measure_docstring
-def rms_time(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
+@_add_standard_parameters_to_docstring
+def rms_time(y: RealArray, t: RealArray) -> RealArray:
     """
     Return the RMS of a time-domain signal
+
+    Parameters
+    ----------
+    {}
+
+    Returns
+    -------
+    RealArray
+        The signal RMS
     """
     return np.sqrt(np.mean(y**2, axis=-1))
 
