@@ -8,19 +8,15 @@ Citations
 E. Holmberg, R. Hillman, and J. Perkell -- Glottal airflow and transglottal air pressure measurements for male and female speakers in soft, normal, and loud voice -- 1998 -- JASA
 """
 
-from typing import Optional, Mapping, Union, Any
-from numpy.typing import NDArray
+from typing import Optional, Mapping, Union
+# from numpy.typing import
 import numpy as np
 import scipy as sp
 
-RealArray = NDArray[float]
-ComplexArray = NDArray[complex]
-BoolArray = NDArray[bool]
-TimeArray = Optional[RealArray]
+RealArray = np.ndarray[float]
+ComplexArray = np.ndarray[complex]
+BoolArray = np.ndarray[bool]
 
-ClosedUB = Optional[float]
-
-OptAxis = Optional[int]
 
 #### Time domain clinical measures
 
@@ -29,9 +25,9 @@ OptAxis = Optional[int]
 def _add_optional_kwargs(func):
     def dec_func(
         y: RealArray,
-        t: TimeArray = None,
+        t: RealArray = None,
         dt: Optional[float] = 1.0,
-        axis: OptAxis = -1,
+        axis: Optional[int] = -1,
         closed_ub: Optional[float] = 0.0,
     ) -> Union[RealArray, ComplexArray, BoolArray]:
         if t is None:
@@ -63,16 +59,16 @@ def _add_state_indicator_docstring(signal_function):
     ----------
     y : RealArray of shape (..., N)
         A signal of glottal width or glottal flow
-    t : TimeArray of shape (..., N)
+    t : RealArray of shape (..., N)
         Time instances of the glottal signal. This should have a shape
         broadcastable to `y`
     dt : Optional[float]
         The uniform time spacing between signal samples. If `t` is
         supplied, values of `dt` will be ignored
-    closed_ub : ClosedUB
+    closed_ub : float
         The largest value of `y` for which the VFs are considered closed
         (i.e. where `y < closed_ub`, the VFs are assumed to be closed)
-    axis: OptAxis
+    axis: Optional[int]
         The axis to compute along. Indices along this axis are
         considered to correspond to difference time instances
 
@@ -87,7 +83,7 @@ def _add_state_indicator_docstring(signal_function):
 
 @_add_optional_kwargs
 @_add_state_indicator_docstring
-def is_closed(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> BoolArray:
+def is_closed(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> BoolArray:
     """
     Return a boolean array indicating if VFs are closed
     """
@@ -96,7 +92,7 @@ def is_closed(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> BoolArray:
 
 @_add_optional_kwargs
 @_add_state_indicator_docstring
-def is_open(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> BoolArray:
+def is_open(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> BoolArray:
     """
     Return a boolean array indicating if VFs are opening
     """
@@ -105,7 +101,7 @@ def is_open(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> BoolArray:
 
 @_add_optional_kwargs
 @_add_state_indicator_docstring
-def is_closing(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> BoolArray:
+def is_closing(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> BoolArray:
     """
     Return a boolean array indicating if VFs are closing
     """
@@ -116,7 +112,7 @@ def is_closing(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> BoolArray
 
 @_add_optional_kwargs
 @_add_state_indicator_docstring
-def is_opening(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> BoolArray:
+def is_opening(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> BoolArray:
     """
     Return a boolean array indicating if VFs are opening
     """
@@ -126,7 +122,7 @@ def is_opening(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> BoolArray
 
 
 ## Return scalar summaries of the signal
-def _duration(t: TimeArray) -> float:
+def _duration(t: RealArray) -> float:
     return t[..., -1] - t[..., 0]
 
 
@@ -141,16 +137,16 @@ def _add_measure_docstring(measure_function):
     ----------
     y : RealArray of shape (..., N)
         A signal of glottal width or glottal flow
-    t : TimeArray of shape (..., N)
+    t : RealArray of shape (..., N)
         Time instances of the glottal signal. This should have a shape
         broadcastable to `y`
     dt : Optional[float]
         The uniform time spacing between signal samples. If `t` is
         supplied, values of `dt` will be ignored
-    closed_ub : ClosedUB
+    closed_ub : float
         The largest value of `y` for which the VFs are considered closed
         (i.e. where `y < closed_ub`, the VFs are assumed to be closed)
-    axis: OptAxis
+    axis: Optional[int]
         The axis to compute along. Indices along this axis are
         considered to correspond to difference time instances
 
@@ -167,7 +163,7 @@ def _add_measure_docstring(measure_function):
 
 @_add_optional_kwargs
 @_add_measure_docstring
-def closed_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
+def closed_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     Return the closed ratio
 
@@ -181,7 +177,7 @@ def closed_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArr
 
 @_add_optional_kwargs
 @_add_measure_docstring
-def open_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
+def open_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     Return the open ratio
 
@@ -192,7 +188,7 @@ def open_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray
 
 @_add_optional_kwargs
 @_add_measure_docstring
-def closing_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
+def closing_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     Return the closing ratio
 
@@ -206,7 +202,7 @@ def closing_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealAr
 
 @_add_optional_kwargs
 @_add_measure_docstring
-def opening_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
+def opening_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     Return the opening ratio
 
@@ -220,7 +216,7 @@ def opening_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealAr
 
 @_add_optional_kwargs
 @_add_measure_docstring
-def speed_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
+def speed_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     Return the speed ratio
 
@@ -233,7 +229,7 @@ def speed_ratio(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArra
 
 @_add_optional_kwargs
 @_add_measure_docstring
-def mfdr(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
+def mfdr(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     Return the maximum flow declination rate (MFDR)
     """
@@ -244,7 +240,7 @@ def mfdr(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
 
 @_add_optional_kwargs
 @_add_measure_docstring
-def ac_flow(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
+def ac_flow(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     Return the AC flow
 
@@ -255,7 +251,7 @@ def ac_flow(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
 
 @_add_optional_kwargs
 @_add_measure_docstring
-def acdc(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
+def acdc(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     See Holmberg et al. for the definition
     """
@@ -269,7 +265,7 @@ def acdc(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
 
 @_add_optional_kwargs
 @_add_measure_docstring
-def rms_time(y: RealArray, t: TimeArray, closed_ub: ClosedUB = 0) -> RealArray:
+def rms_time(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     Return the RMS of a time-domain signal
     """
@@ -287,7 +283,7 @@ def prad_piston(
     q: ComplexArray,
     f: Optional[RealArray] = None,
     df: Optional[float] = 1.0,
-    axis: OptAxis = -1,
+    axis: Optional[int] = -1,
     piston_params: Optional[Mapping[str, float]] = None,
 ) -> ComplexArray:
     """
@@ -307,7 +303,7 @@ def prad_piston(
         Frequency bins corresponding to components of `q` in [rad/unit time]
     df: Optional[float]
         Frequency spacing of `q` components in [rad/unit time].
-    axis: OptAxis
+    axis: Optional[int]
         The axis along which frequency varies.
     piston_params: Mapping[str, float]
         A mapping of named piston parameters to values. The parameters are given
