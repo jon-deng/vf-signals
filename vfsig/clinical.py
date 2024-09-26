@@ -29,36 +29,7 @@ BoolArray = np.ndarray[bool]
 # `def g(y: RealArray, t: Union[RealArray, float], axis: Optional[int], **kwargs)`
 # by the decorator `_add_optional_kwargs`
 
-## Decorator for adding `axis` and optional `time` and `dt` kwargs
-# This decorator modifies the
-def _add_optional_kwargs(func):
-    def dec_func(
-        y: RealArray,
-        t: RealArray = None,
-        dt: Optional[float] = 1.0,
-        axis: Optional[int] = -1,
-        **kwargs
-    ) -> Union[RealArray, ComplexArray, BoolArray]:
-        if t is None:
-            time = dt * np.arange(y.shape[-1])
-        else:
-            time = t
-
-        y = np.moveaxis(y, axis, -1)
-        time = np.moveaxis(time, axis, -1)
-        return func(y, time, **kwargs)
-
-    dec_func.__doc__ = func.__doc__
-
-    return dec_func
-
-
-## State indicator functions
-# These time domain functions return a boolean array indicating whether the VFs
-# are/aren't in some state (open, closed, closing, opening)
-# The basic signature is
-# `def f(y: RealArray, t: RealArray, closed_ub: Optional[float]=0)`
-
+# This adds augmented signature parameters to the docstring
 def _add_standard_parameters_to_docstring(signal_function: Callable):
     """
     Add the 'Parameters' sections to a indicator function docstring
@@ -83,6 +54,35 @@ def _add_standard_parameters_to_docstring(signal_function: Callable):
     )
     return signal_function
 
+## State indicator functions
+# These time domain functions return a boolean array indicating whether the VFs
+# are/aren't in some state (open, closed, closing, opening)
+# The basic signature is
+# `def f(y: RealArray, t: RealArray, closed_ub: Optional[float]=0)`
+
+# Decorator for adding `axis` and optional `time` and `dt` kwargs
+def _add_optional_kwargs(func):
+    def dec_func(
+        y: RealArray,
+        t: RealArray = None,
+        dt: Optional[float] = 1.0,
+        axis: Optional[int] = -1,
+        **kwargs
+    ) -> Union[RealArray, ComplexArray, BoolArray]:
+        if t is None:
+            time = dt * np.arange(y.shape[-1])
+        else:
+            time = t
+
+        y = np.moveaxis(y, axis, -1)
+        time = np.moveaxis(time, axis, -1)
+        # NOTE: This moves the time axis from -1 back to its original spot
+        # You need this because these functions don't reduce the time axis
+        return np.moveaxis(func(y, time, **kwargs), axis, -1)
+
+    dec_func.__doc__ = func.__doc__
+
+    return dec_func
 
 @_add_optional_kwargs
 @_add_standard_parameters_to_docstring
@@ -180,6 +180,29 @@ def is_opening(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> Bo
 # These time domain functions return reduce a time signal into a scalar measure
 # The basic signature is
 # `def f(y: RealArray, t: RealArray, **kwargs)`
+
+# Decorator for adding `axis` and optional `time` and `dt` kwargs
+def _add_optional_kwargs(func):
+    def dec_func(
+        y: RealArray,
+        t: RealArray = None,
+        dt: Optional[float] = 1.0,
+        axis: Optional[int] = -1,
+        **kwargs
+    ) -> Union[RealArray, ComplexArray, BoolArray]:
+        if t is None:
+            time = dt * np.arange(y.shape[-1])
+        else:
+            time = t
+
+        y = np.moveaxis(y, axis, -1)
+        time = np.moveaxis(time, axis, -1)
+        # NOTE: You don't need `moveaxis` since the time axis is reduced
+        return func(y, time, **kwargs)
+
+    dec_func.__doc__ = func.__doc__
+
+    return dec_func
 
 def _duration(t: RealArray) -> float:
     return t[..., -1] - t[..., 0]
