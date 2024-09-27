@@ -84,8 +84,8 @@ def _add_optional_kwargs(func):
 
     return dec_func
 
-@_add_optional_kwargs
 @_add_standard_parameters_to_docstring
+@_add_optional_kwargs
 def is_closed(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> BoolArray:
     """
     Return a boolean array indicating if VFs are closed
@@ -105,9 +105,8 @@ def is_closed(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> Boo
     """
     return y < closed_ub
 
-
-@_add_optional_kwargs
 @_add_standard_parameters_to_docstring
+@_add_optional_kwargs
 def is_open(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> BoolArray:
     """
     Return a boolean array indicating if VFs are opening
@@ -128,8 +127,8 @@ def is_open(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> BoolA
     return np.logical_not(is_closed(y, t=t, closed_ub=closed_ub))
 
 
-@_add_optional_kwargs
 @_add_standard_parameters_to_docstring
+@_add_optional_kwargs
 def is_closing(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> BoolArray:
     """
     Return a boolean array indicating if VFs are closing
@@ -152,8 +151,8 @@ def is_closing(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> Bo
     return np.logical_and(is_open(y, t=t, closed_ub=closed_ub), y_prime < 0)
 
 
-@_add_optional_kwargs
 @_add_standard_parameters_to_docstring
+@_add_optional_kwargs
 def is_opening(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> BoolArray:
     """
     Return a boolean array indicating if VFs are opening
@@ -208,8 +207,8 @@ def _duration(t: RealArray) -> float:
     return t[..., -1] - t[..., 0]
 
 
-@_add_optional_kwargs
 @_add_standard_parameters_to_docstring
+@_add_optional_kwargs
 def closed_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     Return the closed ratio
@@ -235,8 +234,8 @@ def closed_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> 
     return closed_duration / duration
 
 
-@_add_optional_kwargs
 @_add_standard_parameters_to_docstring
+@_add_optional_kwargs
 def open_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     Return the open ratio
@@ -259,8 +258,8 @@ def open_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> Re
     return 1 - closed_ratio(y, t, closed_ub=closed_ub)
 
 
-@_add_optional_kwargs
 @_add_standard_parameters_to_docstring
+@_add_optional_kwargs
 def closing_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     Return the closing ratio
@@ -286,8 +285,8 @@ def closing_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) ->
     return closing_duration / duration
 
 
-@_add_optional_kwargs
 @_add_standard_parameters_to_docstring
+@_add_optional_kwargs
 def opening_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     Return the opening ratio
@@ -313,8 +312,8 @@ def opening_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) ->
     return opening_duration / duration
 
 
-@_add_optional_kwargs
 @_add_standard_parameters_to_docstring
+@_add_optional_kwargs
 def speed_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     Return the speed ratio
@@ -339,8 +338,8 @@ def speed_ratio(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> R
     )
 
 
-@_add_optional_kwargs
 @_add_standard_parameters_to_docstring
+@_add_optional_kwargs
 def mfdr(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArray:
     """
     Return the maximum flow declination rate (MFDR)
@@ -363,8 +362,8 @@ def mfdr(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> RealArra
     return np.min(yp[ind_open])
 
 
-@_add_optional_kwargs
 @_add_standard_parameters_to_docstring
+@_add_optional_kwargs
 def ac_flow(y: RealArray, t: RealArray) -> RealArray:
     """
     Return the AC flow
@@ -383,8 +382,8 @@ def ac_flow(y: RealArray, t: RealArray) -> RealArray:
     return np.max(y, axis=-1) - np.min(y, axis=-1)
 
 
-@_add_optional_kwargs
 @_add_standard_parameters_to_docstring
+@_add_optional_kwargs
 def acdc(y: RealArray, t: RealArray) -> RealArray:
     """
     See Holmberg et al. for the definition
@@ -406,8 +405,8 @@ def acdc(y: RealArray, t: RealArray) -> RealArray:
     return y_ac_rms / y_ac_mean
 
 
-@_add_optional_kwargs
 @_add_standard_parameters_to_docstring
+@_add_optional_kwargs
 def rms_time(y: RealArray, t: RealArray) -> RealArray:
     """
     Return the RMS of a time-domain signal
