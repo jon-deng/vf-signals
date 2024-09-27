@@ -30,9 +30,9 @@ BoolArray = np.ndarray[bool]
 # by the decorator `_add_optional_kwargs`
 
 # This adds augmented signature parameters to the docstring
-def _add_standard_parameters_to_docstring(signal_function: Callable):
+def _add_standard_parameters_to_docstring(time_domain_function: Callable):
     """
-    Add the 'Parameters' sections to a indicator function docstring
+    Add the 'Parameters' sections to a time domain function's docstring
     """
 
     doc_standard_parameters = """y : RealArray of shape (..., N)
@@ -49,10 +49,10 @@ def _add_standard_parameters_to_docstring(signal_function: Callable):
         `dt`.
     axis: Optional[int]
         The time axis for both `y` and `t`"""
-    signal_function.__doc__ = signal_function.__doc__.format(
+    time_domain_function.__doc__ = time_domain_function.__doc__.format(
         doc_standard_parameters
     )
-    return signal_function
+    return time_domain_function
 
 ## State indicator functions
 # These time domain functions return a boolean array indicating whether the VFs
@@ -61,7 +61,7 @@ def _add_standard_parameters_to_docstring(signal_function: Callable):
 # `def f(y: RealArray, t: RealArray, closed_ub: Optional[float]=0)`
 
 # Decorator for adding `axis` and optional `time` and `dt` kwargs
-def _add_optional_kwargs(func):
+def _add_optional_kwargs(time_domain_function):
     def dec_func(
         y: RealArray,
         t: RealArray = None,
@@ -78,9 +78,9 @@ def _add_optional_kwargs(func):
         time = np.moveaxis(time, axis, -1)
         # NOTE: This moves the time axis from -1 back to its original spot
         # You need this because these functions don't reduce the time axis
-        return np.moveaxis(func(y, time, **kwargs), axis, -1)
+        return np.moveaxis(time_domain_function(y, time, **kwargs), axis, -1)
 
-    dec_func.__doc__ = func.__doc__
+    dec_func.__doc__ = time_domain_function.__doc__
 
     return dec_func
 
@@ -181,7 +181,7 @@ def is_opening(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> Bo
 # `def f(y: RealArray, t: RealArray, **kwargs)`
 
 # Decorator for adding `axis` and optional `time` and `dt` kwargs
-def _add_optional_kwargs(func):
+def _add_optional_kwargs(time_domain_function):
     def dec_func(
         y: RealArray,
         t: RealArray = None,
@@ -197,9 +197,9 @@ def _add_optional_kwargs(func):
         y = np.moveaxis(y, axis, -1)
         time = np.moveaxis(time, axis, -1)
         # NOTE: You don't need `moveaxis` since the time axis is reduced
-        return func(y, time, **kwargs)
+        return time_domain_function(y, time, **kwargs)
 
-    dec_func.__doc__ = func.__doc__
+    dec_func.__doc__ = time_domain_function.__doc__
 
     return dec_func
 
@@ -425,16 +425,70 @@ def rms_time(y: RealArray, t: RealArray) -> RealArray:
 
 #### Frequency domain clinical measures
 
-## Decorator for adding `axis` and optional `freq` and `dfreq` kwargs
+# All frequency domain clinical measures have the basic function signature
+# `def f(y: ComplexArray, f: RealArray, **kwargs)`
+# where `y` are the frequency components, `f` are the frequency bins and `kwargs`
+# are any specific keyword arguments.
+#
+# The basic signature is augmented to
+# `def g(y: RealArray, f: Optional[RealArray], df: Optional[float] axis: Optional[int], **kwargs)`
+# by the decorator `_add_optional_kwargs`
+
+def _add_standard_parameters_to_docstring(freq_domain_function: Callable):
+    """
+    Add the 'Parameters' sections to a frequency domain function's docstring
+    """
+
+    doc_standard_parameters = """y : ComplexArray of shape (..., N)
+        The time domain signal
+    f : Optional[RealArray] of shape (..., N)
+        Frequency bins
+
+        This should have a shape broadcastable to `y`
+    df : Optional[float]
+        An optional frequency spacing
+
+        If `f` is supplied  `df` will be ignored.
+        If `df` is supplied and `f=None` the frequency bins are assumed to increase from
+        0 in increments of `df`.
+    axis: Optional[int]
+        The frequency axis for both `y` and `f`"""
+    freq_domain_function.__doc__ = freq_domain_function.__doc__.format(
+        doc_standard_parameters
+    )
+    return freq_domain_function
+
+# Decorator for adding `df` and `axis` kwargs
 # TODO: You should probably use a decorator (similar for time domain functions)
 # to handle optional frequency and frequency step arguments
+# Decorator for adding `axis` and optional `time` and `dt` kwargs
 
+def _add_optional_kwargs(func):
+    def dec_func(
+        y: ComplexArray,
+        f: Optional[RealArray] = None,
+        df: Optional[float] = 1.0,
+        axis: Optional[int] = -1,
+        **kwargs
+    ) -> ComplexArray:
+        if f is None:
+            f = df * np.arange(y.shape[-1])
+        else:
+            f = f
 
+        y = np.moveaxis(y, axis, -1)
+        f = np.moveaxis(f, axis, -1)
+        return np.moveaxis(func(y, f, **kwargs), -1, axis)
+
+    dec_func.__doc__ = func.__doc__
+
+    return dec_func
+
+@_add_standard_parameters_to_docstring
+@_add_optional_kwargs
 def prad_piston(
     q: ComplexArray,
     f: Optional[RealArray] = None,
-    df: Optional[float] = 1.0,
-    axis: Optional[int] = -1,
     piston_params: Optional[Mapping[str, float]] = None,
 ) -> ComplexArray:
     """
@@ -447,15 +501,7 @@ def prad_piston(
 
     Parameters
     ----------
-    q: ComplexSignal of shape (..., N)
-        The frequency domain components of the flow rate. If the flow rate is
-        a time domain signal `qt`, this is the result of `np.fft.rfft(qt)`.
-    f: Optional[RealSignal] of shape (..., N)
-        Frequency bins corresponding to components of `q` in [rad/unit time]
-    df: Optional[float]
-        Frequency spacing of `q` components in [rad/unit time].
-    axis: Optional[int]
-        The axis along which frequency varies.
+    {}
     piston_params: Mapping[str, float]
         A mapping of named piston parameters to values. The parameters are given
         by (see Figure 7.4.3 of Kinsler):
@@ -467,7 +513,7 @@ def prad_piston(
 
     Returns
     -------
-    prad: ComplexSignal of shape (..., N)
+    prad: ComplexArray of shape (..., N)
         The complex radiated pressure in the frequency domain.
     """
     # Handle depacking of the piston-in-baffle approximation's acoustic parameters
@@ -488,15 +534,6 @@ def prad_piston(
     a = piston_params['a']
     rho = piston_params['rho']
     c = piston_params['c']
-
-    # Compute the frequency bins if not provided
-    # This assumes `q` is a one-sided fourier representation and `q[0]`
-    # corresponds to a frequency of 0.0 rad/s
-    if f is None:
-        f_shape = [1] * q.ndim
-        f_shape[axis] = q.shape[axis]
-        f = np.zeros(f_shape)
-        f[:] = df * np.arange(q.shape[axis])
 
     # apply the piston-in-infinite-baffle formula to determine radiated pressure
     # k is the wave number
@@ -524,9 +561,10 @@ def prad_piston(
             * np.exp(-1j * k * r)
         )
 
-
-def rms_freq(y, f=None, df=None, axis=-1):
-    return np.sqrt(np.mean(y**2, axis=axis))
+@_add_standard_parameters_to_docstring
+@_add_optional_kwargs
+def rms_freq(y: ComplexArray, f: RealArray) -> ComplexArray:
+    return np.sqrt(np.mean(y**2, axis=-1))
 
 
 # def spl(y, t=None, dt=None, axis=-1):
