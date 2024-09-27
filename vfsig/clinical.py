@@ -8,7 +8,7 @@ Citations
 E. Holmberg, R. Hillman, and J. Perkell -- Glottal airflow and transglottal air pressure measurements for male and female speakers in soft, normal, and loud voice -- 1998 -- JASA
 """
 
-from typing import Optional, Mapping, Union, Callable
+from typing import Optional, Mapping, Union, Callable, Tuple, Any
 # from numpy.typing import
 import numpy as np
 import scipy as sp
@@ -21,16 +21,16 @@ BoolArray = np.ndarray[bool]
 #### Time domain clinical measures
 
 # All time domain clinical measures have the basic function signature
-# `def f(y: RealArray, t: RealArray, **kwargs)`
-# where `y` is the time-varying signal, `t` are the corresponding times and `kwargs`
-# are any specific keyword arguments.
-#
+
+# Basic time domain functions have the signature:
+# Kwargs = Mapping[str, Any]
+TimeDomainFunction = Callable[[RealArray, RealArray], RealArray]
 # The basic signature is augmented to
 # `def g(y: RealArray, t: Union[RealArray, float], axis: Optional[int], **kwargs)`
 # by the decorator `_add_optional_kwargs`
 
 # This adds augmented signature parameters to the docstring
-def _add_standard_parameters_to_docstring(time_domain_function: Callable):
+def _add_standard_parameters_to_docstring(time_domain_function: TimeDomainFunction):
     """
     Add the 'Parameters' sections to a time domain function's docstring
     """
@@ -61,7 +61,7 @@ def _add_standard_parameters_to_docstring(time_domain_function: Callable):
 # `def f(y: RealArray, t: RealArray, closed_ub: Optional[float]=0)`
 
 # Decorator for adding `axis` and optional `time` and `dt` kwargs
-def _add_optional_kwargs(time_domain_function):
+def _add_optional_kwargs(time_domain_function: TimeDomainFunction):
     def dec_func(
         y: RealArray,
         t: RealArray = None,
@@ -175,10 +175,8 @@ def is_opening(y: RealArray, t: RealArray, closed_ub: Optional[float] = 0) -> Bo
     return np.logical_and(is_open(y, t=t, closed_ub=closed_ub), y_prime >= 0)
 
 
-## Return scalar summaries of the signal
-# These time domain functions return reduce a time signal into a scalar measure
-# The basic signature is
-# `def f(y: RealArray, t: RealArray, **kwargs)`
+## Scalar signal summaries
+# These time domain functions reduce a time signal into a scalar measure
 
 # Decorator for adding `axis` and optional `time` and `dt` kwargs
 def _add_optional_kwargs(time_domain_function):
@@ -426,15 +424,12 @@ def rms_time(y: RealArray, t: RealArray) -> RealArray:
 #### Frequency domain clinical measures
 
 # All frequency domain clinical measures have the basic function signature
-# `def f(y: ComplexArray, f: RealArray, **kwargs)`
-# where `y` are the frequency components, `f` are the frequency bins and `kwargs`
-# are any specific keyword arguments.
+FreqDomainFunction = Callable[[ComplexArray, RealArray], ComplexArray]
 #
 # The basic signature is augmented to
 # `def g(y: RealArray, f: Optional[RealArray], df: Optional[float] axis: Optional[int], **kwargs)`
 # by the decorator `_add_optional_kwargs`
-
-def _add_standard_parameters_to_docstring(freq_domain_function: Callable):
+def _add_standard_parameters_to_docstring(freq_domain_function: FreqDomainFunction):
     """
     Add the 'Parameters' sections to a frequency domain function's docstring
     """
@@ -459,11 +454,7 @@ def _add_standard_parameters_to_docstring(freq_domain_function: Callable):
     return freq_domain_function
 
 # Decorator for adding `df` and `axis` kwargs
-# TODO: You should probably use a decorator (similar for time domain functions)
-# to handle optional frequency and frequency step arguments
-# Decorator for adding `axis` and optional `time` and `dt` kwargs
-
-def _add_optional_kwargs(func):
+def _add_optional_kwargs(freq_domain_function: FreqDomainFunction):
     def dec_func(
         y: ComplexArray,
         f: Optional[RealArray] = None,
@@ -478,9 +469,9 @@ def _add_optional_kwargs(func):
 
         y = np.moveaxis(y, axis, -1)
         f = np.moveaxis(f, axis, -1)
-        return np.moveaxis(func(y, f, **kwargs), -1, axis)
+        return np.moveaxis(freq_domain_function(y, f, **kwargs), -1, axis)
 
-    dec_func.__doc__ = func.__doc__
+    dec_func.__doc__ = freq_domain_function.__doc__
 
     return dec_func
 
@@ -564,7 +555,16 @@ def prad_piston(
 @_add_standard_parameters_to_docstring
 @_add_optional_kwargs
 def rms_freq(y: ComplexArray, f: RealArray) -> ComplexArray:
+    """
+    Return the RMS of a frequency domain signal
+
+    Parameters
+    ----------
+    {}
+
+    Returns
+    -------
+    ComplexArray of shape (..., N)
+        The complex RMS
+    """
     return np.sqrt(np.mean(y**2, axis=-1))
-
-
-# def spl(y, t=None, dt=None, axis=-1):
