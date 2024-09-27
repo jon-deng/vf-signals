@@ -531,7 +531,7 @@ def prad_piston(
     k = f / c
     zc = rho * c
 
-    # Note the below formula are missing factors of 'a' relative to eq. (7.4.17)
+    # NOTE: the below formula are missing factors of 'a' relative to eq. (7.4.17)
     # because this formula uses flow rate, instead of piston velocity.
     if theta == 0:
         return 1j / 2 * zc * q / np.pi * 1 / r * k * np.exp(-1j * k * r)
@@ -551,6 +551,29 @@ def prad_piston(
             / y
             * np.exp(-1j * k * r)
         )
+
+# Decorator for adding `df` and `axis` kwargs
+def _add_optional_kwargs(freq_domain_function: FreqDomainFunction):
+    def dec_func(
+        y: ComplexArray,
+        f: Optional[RealArray] = None,
+        df: Optional[float] = 1.0,
+        axis: Optional[int] = -1,
+        **kwargs
+    ) -> ComplexArray:
+        if f is None:
+            f = df * np.arange(y.shape[-1])
+        else:
+            f = f
+
+        y = np.moveaxis(y, axis, -1)
+        f = np.moveaxis(f, axis, -1)
+        # NOTE: You don't have to move the axis since the frequency axis is reduced
+        return freq_domain_function(y, f, **kwargs)
+
+    dec_func.__doc__ = freq_domain_function.__doc__
+
+    return dec_func
 
 @_add_standard_parameters_to_docstring
 @_add_optional_kwargs
