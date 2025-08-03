@@ -130,7 +130,7 @@ def fundamental_mode_from_peaks(
         mean_freq = np.mean(freqs)
         stdev_freq = np.std(freqs)
     else:
-        mean_freq, stdev_freq, mean_phase, stdev_phase = 4 * (np.NaN,)
+        mean_freq, stdev_freq, mean_phase, stdev_phase = 4 * (np.nan,)
         if len(idx_peaks) == 1:
             warnings.warn("Found a single peak", RuntimeWarning)
         elif len(idx_peaks) == 0:
